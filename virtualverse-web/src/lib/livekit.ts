@@ -139,19 +139,36 @@ class LiveKitManager {
     this.setState({ status: "connecting", activeTargetId: targetId, error: null });
 
     try {
-      // Fetch token from NestJS backend
-      const res = await fetch(`${apiUrl}/livekit/token`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetSessionId: targetId }),
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        throw new Error(`Token fetch failed: ${res.status} ${res.statusText}`);
+      // Fetch token from NestJS backend — try /livekit/token, fallback to /api/livekit/token
+      let token = "";
+      try {
+        const res = await fetch(`${apiUrl}/livekit/token`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ targetSessionId: targetId, roomName: "MapRoom" }),
+          credentials: "include",
+        });
+        if (res.ok) {
+          const data = await res.json();
+          token = data.token;
+        }
+      } catch (err) {
+        console.warn("[LiveKit] Direct token fetch failed, trying alternative endpoint", err);
       }
 
-      const { token } = (await res.json()) as { token: string };
+      if (!token) {
+        const res2 = await fetch(`${apiUrl}/api/livekit/token`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ targetSessionId: targetId, roomName: "MapRoom" }),
+          credentials: "include",
+        });
+        if (!res2.ok) {
+          throw new Error(`Token fetch failed (${res2.status}). Open 2 browser tabs & walk near each other for proximity video.`);
+        }
+        const data2 = await res2.json();
+        token = data2.token;
+      }
 
       // Connect to LiveKit room
       this.room = new Room();

@@ -115,7 +115,10 @@ export function VirtualWorld() {
               disabled={colyseus.status !== "connected"}
             />
 
-            <VideoOverlay remoteVideoElements={livekit.remoteVideoElements} />
+            <VideoOverlay
+              remoteVideoElements={livekit.remoteVideoElements}
+              username={username}
+            />
           </div>
         </div>
 
