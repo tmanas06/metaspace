@@ -87,9 +87,11 @@ export class MainScene extends Phaser.Scene {
     // Collide player with walls
     this.physics.add.collider(this.playerContainer, this.walls);
 
-    // Camera settings
+    // Camera settings — follow player, set viewport to full canvas
     this.cameras.main.startFollow(this.playerContainer, true, 0.1, 0.1);
     this.cameras.main.setZoom(1);
+    // Ensure camera viewport covers the whole canvas (not just world bounds)
+    this.cameras.main.setViewport(0, 0, this.scale.width, this.scale.height);
 
     // Input keys
     this.cursors = this.input.keyboard!.createCursorKeys();
@@ -115,9 +117,8 @@ export class MainScene extends Phaser.Scene {
     const height = data.height || 800;
     const tileSize = data.tileSize || 32;
 
-    // Reset physics world bounds & camera bounds
+    // Physics world bounds (player can't walk off the map)
     this.physics.world.setBounds(0, 0, width, height);
-    this.cameras.main.setBounds(0, 0, width, height);
 
     // Clear old physics walls
     this.walls.clear(true, true);
@@ -136,6 +137,10 @@ export class MainScene extends Phaser.Scene {
     const floorCol = hexColor(style.floorColor || "#1e293b");
     const wallCol = hexColor(style.wallColor || "#0f172a");
     const gridCol = hexColor(style.gridColor || "#334155");
+
+    // Match camera background to floor color so the area outside the map world
+    // blends seamlessly instead of showing a different colour.
+    this.cameras.main.setBackgroundColor(floorCol);
 
     // 1. Draw base floor
     gfx.fillStyle(floorCol, 1);
@@ -241,6 +246,23 @@ export class MainScene extends Phaser.Scene {
       this.predictedX = data.spawnPoint.x;
       this.predictedY = data.spawnPoint.y;
     }
+
+    // Auto-zoom so the map fills the full canvas viewport.
+    // Calculate the zoom that makes the world fit the screen (scale-to-fill).
+    this.applyAutoZoom(width, height);
+  }
+
+  /** Compute and apply zoom so the world fills the viewport. */
+  private applyAutoZoom(worldWidth: number, worldHeight: number) {
+    const canvasW = this.scale.width;
+    const canvasH = this.scale.height;
+    if (!canvasW || !canvasH) return;
+    const zoomX = canvasW / worldWidth;
+    const zoomY = canvasH / worldHeight;
+    // Use the larger zoom so the map always covers the full viewport (cover, not contain)
+    const zoom = Math.max(zoomX, zoomY);
+    this.cameras.main.setZoom(Math.max(zoom, 1)); // never zoom out below 1:1
+    this.cameras.main.setViewport(0, 0, canvasW, canvasH);
   }
 
   // ─── Avatar Factory (Gather.town style character container) ───────────────
@@ -408,5 +430,16 @@ export class MainScene extends Phaser.Scene {
 
   setLocalSessionId(id: string) {
     this.localSessionId = id;
+  }
+
+  /**
+   * Called by PhaserGame when the Scale Manager fires a resize event.
+   * Updates the main camera viewport so it covers the full new canvas dimensions.
+   */
+  onGameResize(width: number, height: number) {
+    this.cameras.main.setViewport(0, 0, width, height);
+    const wd = this.currentMapData.width || 800;
+    const ht = this.currentMapData.height || 800;
+    this.applyAutoZoom(wd, ht);
   }
 }

@@ -58,6 +58,21 @@ class ColyseusManager {
     return this.state;
   }
 
+  private chatCallbacks: ((msg: { id: string; username: string; text: string; timestamp: Date; local?: boolean }) => void)[] = [];
+
+  onChatMessage(fn: (msg: { id: string; username: string; text: string; timestamp: Date; local?: boolean }) => void) {
+    this.chatCallbacks.push(fn);
+    return () => {
+      this.chatCallbacks = this.chatCallbacks.filter((cb) => cb !== fn);
+    };
+  }
+
+  sendChatMessage(text: string) {
+    if (this.room && this.state.status === "connected") {
+      this.room.send("chat", { text });
+    }
+  }
+
   async connect(username: string, mapPreset: string = "Event Hall & Main Stage") {
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
     if (!wsUrl) {
@@ -90,6 +105,17 @@ class ColyseusManager {
         }
       });
 
+      // Receive chat messages from server
+      this.room.onMessage("chat", (data: { username: string; text: string }) => {
+        const msg = {
+          id: crypto.randomUUID(),
+          username: data.username || "Anonymous",
+          text: data.text,
+          timestamp: new Date(),
+        };
+        this.chatCallbacks.forEach((fn) => fn(msg));
+      });
+
       // Receive authoritative state from server
       this.room.onStateChange((serverState) => {
         this.handleStateChange(serverState);
@@ -111,12 +137,26 @@ class ColyseusManager {
       });
 
       this.room.onError((code, message) => {
-        console.error(`[Colyseus] Room error ${code}: ${message}`);
-        this.setState({ status: "error", error: message ?? `Error code ${code}` });
+        const errMsg = typeof message === "string" ? message : `Error code ${code}`;
+        console.error(`[Colyseus] Room error ${code}: ${errMsg}`);
+        this.setState({ status: "error", error: errMsg });
       });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error("[Colyseus] Connection failed:", msg);
+    } catch (err: any) {
+      let msg = "Failed to connect to server";
+      if (err instanceof Error && err.message) {
+        msg = err.message;
+      } else if (typeof err === "string") {
+        msg = err;
+      } else if (err && typeof err === "object") {
+        if (err.message) {
+          msg = String(err.message);
+        } else if (err.type === "error" || err.constructor?.name === "ProgressEvent" || (err as any).target) {
+          msg = `Server unreachable (${wsUrl})`;
+        } else {
+          msg = JSON.stringify(err);
+        }
+      }
+      console.warn("[Colyseus] Connection error:", msg);
       this.setState({ status: "error", error: msg });
     }
   }

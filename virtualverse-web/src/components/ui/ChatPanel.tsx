@@ -1,12 +1,9 @@
 "use client";
 
-import { useState, useRef, FormEvent } from "react";
+import { useState, useRef, useEffect, FormEvent } from "react";
+import { colyseusManager } from "@/lib/colyseus";
 
-// TODO: Wire to POST ${NEXT_PUBLIC_API_URL}/chat once the chat endpoint
-//       is implemented on the server. Currently disabled with a visible
-//       "Chat coming soon" notice — does NOT silently do nothing.
-
-interface ChatMessage {
+export interface ChatMessage {
   id: string;
   username: string;
   text: string;
@@ -17,110 +14,309 @@ interface ChatMessage {
 interface ChatPanelProps {
   username: string;
   disabled?: boolean;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-const CHAT_ENABLED = false; // Flip to true once /chat endpoint is ready
-
-export function ChatPanel({ username, disabled }: ChatPanelProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+export function ChatPanel({ username, disabled, isOpen = true, onClose }: ChatPanelProps) {
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: "welcome",
+      username: "System",
+      text: "Welcome to VirtualVerse! Type a message below to chat with others in this space.",
+      timestamp: new Date(),
+    },
+  ]);
   const [input, setInput] = useState("");
-  const [sending, setSending] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  // Subscribe to real-time chat messages from Colyseus server
+  useEffect(() => {
+    const unsub = colyseusManager.onChatMessage((msg) => {
+      setMessages((prev) => [...prev, msg]);
+    });
+    return unsub;
+  }, []);
 
-  const sendMessage = async (e: FormEvent) => {
+  // Auto-scroll on new message
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    }
+  }, [messages, collapsed]);
+
+  const sendMessage = (e: FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || !CHAT_ENABLED || disabled) return;
+    if (!input.trim() || disabled) return;
 
-    const msg: ChatMessage = {
+    const text = input.trim();
+
+    const localMsg: ChatMessage = {
       id: crypto.randomUUID(),
-      username,
-      text: input.trim(),
+      username: username || "You",
+      text,
       timestamp: new Date(),
       local: true,
     };
 
-    setMessages((prev) => [...prev, msg]);
+    setMessages((prev) => [...prev, localMsg]);
     setInput("");
-    setSending(true);
 
-    try {
-      // TODO: implement once /chat exists
-      await fetch(`${apiUrl}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: msg.text }),
-        credentials: "include",
-      });
-    } catch (err) {
-      console.warn("[Chat] Send failed:", err);
-    } finally {
-      setSending(false);
-      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-    }
+    // Broadcast to Colyseus room if connected
+    colyseusManager.sendChatMessage(text);
   };
+
+  if (!isOpen) return null;
+
+  if (collapsed) {
+    return (
+      <button
+        id="chat-toggle-btn"
+        onClick={() => setCollapsed(false)}
+        style={{
+          background: "rgba(15, 23, 42, 0.95)",
+          border: "1px solid rgba(255, 255, 255, 0.12)",
+          backdropFilter: "blur(12px)",
+          borderRadius: 14,
+          padding: "8px 14px",
+          color: "#fff",
+          fontSize: 12,
+          fontWeight: 600,
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          cursor: "pointer",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+          transition: "transform 0.15s ease, background 0.15s ease",
+        }}
+        onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.transform = "scale(1.03)")}
+        onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.transform = "scale(1)")}
+        title="Expand Chat"
+      >
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#818cf8" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
+        <span>Chat</span>
+        {messages.length > 1 && (
+          <span
+            style={{
+              background: "#6366f1",
+              color: "#fff",
+              fontSize: 10,
+              borderRadius: 10,
+              padding: "1px 6px",
+            }}
+          >
+            {messages.length - 1}
+          </span>
+        )}
+      </button>
+    );
+  }
 
   return (
     <div
       id="chat-panel"
-      className="flex flex-col w-72 rounded-xl overflow-hidden
-                 bg-black/60 backdrop-blur-md border border-white/10"
+      style={{
+        width: 300,
+        borderRadius: 16,
+        background: "rgba(15, 23, 42, 0.95)",
+        border: "1px solid rgba(255, 255, 255, 0.12)",
+        backdropFilter: "blur(16px)",
+        boxShadow: "0 12px 36px rgba(0,0,0,0.5)",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
     >
       {/* Header */}
-      <div className="px-3 py-2 border-b border-white/10 flex items-center justify-between">
-        <span className="text-white text-xs font-semibold uppercase tracking-widest">
-          Chat
-        </span>
-        {!CHAT_ENABLED && (
-          <span className="text-xs text-yellow-400 bg-yellow-400/10 px-2 py-0.5 rounded-full">
-            Coming soon
+      <div
+        style={{
+          padding: "10px 14px",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          background: "rgba(255, 255, 255, 0.02)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#818cf8" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          <span style={{ color: "#fff", fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px" }}>
+            Room Chat
           </span>
-        )}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          {/* Minimize button */}
+          <button
+            onClick={() => setCollapsed(true)}
+            style={{
+              background: "none",
+              border: "none",
+              color: "rgba(255,255,255,0.4)",
+              cursor: "pointer",
+              padding: 4,
+              borderRadius: 6,
+              display: "flex",
+              alignItems: "center",
+            }}
+            title="Minimize Chat"
+          >
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {onClose && (
+            <button
+              onClick={onClose}
+              style={{
+                background: "none",
+                border: "none",
+                color: "rgba(255,255,255,0.4)",
+                cursor: "pointer",
+                padding: 4,
+                borderRadius: 6,
+                display: "flex",
+                alignItems: "center",
+              }}
+              title="Close Chat"
+            >
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Message list */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-2 space-y-1.5 min-h-[120px] max-h-[200px]"
+        style={{
+          height: 180,
+          overflowY: "auto",
+          padding: "10px 12px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+        }}
       >
-        {messages.length === 0 ? (
-          <p className="text-zinc-600 text-xs text-center mt-4">
-            {CHAT_ENABLED
-              ? "No messages yet"
-              : "Chat will be available once the server endpoint is live."}
-          </p>
-        ) : (
-          messages.map((m) => (
-            <div key={m.id} className={`text-xs ${m.local ? "text-right" : ""}`}>
-              <span className="text-zinc-400 mr-1">{m.username}:</span>
-              <span className="text-white">{m.text}</span>
+        {messages.map((m) => {
+          const isSystem = m.username === "System";
+          const isMe = m.local || m.username === username;
+
+          if (isSystem) {
+            return (
+              <div
+                key={m.id}
+                style={{
+                  fontSize: 11,
+                  color: "rgba(255,255,255,0.5)",
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  borderRadius: 8,
+                  padding: "6px 10px",
+                  lineHeight: "1.4",
+                  textAlign: "center",
+                }}
+              >
+                {m.text}
+              </div>
+            );
+          }
+
+          return (
+            <div
+              key={m.id}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: isMe ? "flex-end" : "flex-start",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 10,
+                  color: isMe ? "#a5b4fc" : "rgba(255,255,255,0.4)",
+                  marginBottom: 2,
+                  fontWeight: 600,
+                  paddingLeft: 2,
+                  paddingRight: 2,
+                }}
+              >
+                {m.username}
+              </span>
+              <div
+                style={{
+                  maxWidth: "85%",
+                  padding: "7px 11px",
+                  borderRadius: isMe ? "12px 12px 2px 12px" : "12px 12px 12px 2px",
+                  background: isMe ? "linear-gradient(135deg, #4f46e5, #6366f1)" : "rgba(255,255,255,0.08)",
+                  color: "#fff",
+                  fontSize: 12,
+                  lineHeight: "1.4",
+                  wordBreak: "break-word",
+                  boxShadow: isMe ? "0 2px 8px rgba(99,102,241,0.25)" : "none",
+                }}
+              >
+                {m.text}
+              </div>
             </div>
-          ))
-        )}
+          );
+        })}
       </div>
 
-      {/* Input */}
-      <form onSubmit={sendMessage} className="flex gap-1 p-2 border-t border-white/10">
+      {/* Input Form */}
+      <form
+        onSubmit={sendMessage}
+        style={{
+          padding: 8,
+          borderTop: "1px solid rgba(255,255,255,0.08)",
+          display: "flex",
+          gap: 6,
+          background: "rgba(0,0,0,0.2)",
+        }}
+      >
         <input
           id="chat-input"
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          disabled={!CHAT_ENABLED || disabled || sending}
-          placeholder={CHAT_ENABLED ? "Send a message…" : "Chat coming soon"}
-          className="flex-1 bg-white/5 text-white text-xs rounded-lg px-2 py-1.5
-                     placeholder:text-zinc-600 border border-white/10
-                     focus:outline-none focus:ring-1 focus:ring-indigo-500
-                     disabled:opacity-40 disabled:cursor-not-allowed"
+          disabled={disabled}
+          placeholder="Send a message…"
+          style={{
+            flex: 1,
+            background: "rgba(255,255,255,0.06)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 10,
+            color: "#fff",
+            fontSize: 12,
+            padding: "8px 12px",
+            outline: "none",
+            fontFamily: "inherit",
+          }}
         />
         <button
           type="submit"
           id="chat-send-btn"
-          disabled={!CHAT_ENABLED || disabled || !input.trim() || sending}
-          className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40
-                     disabled:cursor-not-allowed text-white text-xs px-2 py-1.5
-                     rounded-lg transition-colors"
+          disabled={disabled || !input.trim()}
+          style={{
+            background: input.trim() ? "#6366f1" : "rgba(255,255,255,0.08)",
+            color: input.trim() ? "#fff" : "rgba(255,255,255,0.3)",
+            border: "none",
+            borderRadius: 10,
+            padding: "0 14px",
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: input.trim() ? "pointer" : "default",
+            transition: "background 0.15s ease",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
         >
           Send
         </button>

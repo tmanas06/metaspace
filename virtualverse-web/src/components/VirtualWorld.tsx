@@ -3,18 +3,29 @@
 /**
  * VirtualWorld — the full interactive game world.
  * Executed browser-only via next/dynamic ssr:false.
+ *
+ * Layout (GatherOffice-style):
+ *   ┌──────────┬──────────────────────────────────────┐
+ *   │ Sidebar  │         Game Canvas                  │
+ *   │ (220px)  │  (fills remaining space)             │
+ *   │          │                                      │
+ *   │          │  [video tiles: top-right]            │
+ *   │          │                                      │
+ *   │          │  [bottom bar: centered]              │
+ *   └──────────┴──────────────────────────────────────┘
  */
 
 import { useState, useEffect } from "react";
 import { GameCanvas } from "@/components/GameCanvas";
-import { MenuBar } from "@/components/ui/MenuBar";
-import { ChatPanel } from "@/components/ui/ChatPanel";
+import { PlayerSidebar } from "@/components/ui/PlayerSidebar";
 import { VideoOverlay } from "@/components/ui/VideoOverlay";
+import { ChatPanel } from "@/components/ui/ChatPanel";
 import { MapSelectorModal } from "@/components/ui/MapSelectorModal";
 import { PermissionsModal } from "@/components/ui/PermissionsModal";
 import { ControlsModal } from "@/components/ui/ControlsModal";
 import { useColyseus } from "@/hooks/useColyseus";
 import { useLiveKit } from "@/hooks/useLiveKit";
+import { usePlayers } from "@/hooks/usePlayers";
 import { fetchRoomPresets, FALLBACK_MAP_PRESETS, MapPresetData } from "@/lib/api";
 import { gameBridge } from "@/game/GameBridge";
 
@@ -27,13 +38,15 @@ export function VirtualWorld() {
   const [presets, setPresets] = useState<MapPresetData[]>(FALLBACK_MAP_PRESETS);
   const [selectedMapData, setSelectedMapData] = useState<MapPresetData>(FALLBACK_MAP_PRESETS[0]);
 
-  // Modals state
+  // Modals & Chat state
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [isPermissionsOpen, setIsPermissionsOpen] = useState(false);
   const [isControlsOpen, setIsControlsOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(true);
 
   const colyseus = useColyseus();
   const livekit = useLiveKit();
+  const players = usePlayers(username);
 
   // Load presets from server REST API on mount
   useEffect(() => {
@@ -89,36 +102,88 @@ export function VirtualWorld() {
   }
 
   return (
-    <div className="relative w-screen h-screen bg-[#0d0d1a] overflow-hidden flex flex-col">
-      {/* Top Menu Bar */}
-      <MenuBar
-        colyseusStatus={colyseus.status}
-        livekitStatus={livekit.status}
-        username={username}
-        activeMap={selectedMapData.name}
-        onOpenMapSelector={() => setIsMapModalOpen(true)}
-        onOpenControls={() => setIsControlsOpen(true)}
-        onOpenPermissions={() => setIsPermissionsOpen(true)}
-        onLeave={handleLeave}
-      />
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "#0d0d1a",
+        overflow: "hidden",
+      }}
+    >
+      {/* ── Left Sidebar — absolute, sits on the left edge ── */}
+      <div
+        id="sidebar-wrapper"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          bottom: 0,
+          width: 220,
+          zIndex: 20,
+        }}
+      >
+        <PlayerSidebar
+          appName="VirtualVerse"
+          players={players}
+          localUsername={username}
+          onOpenMapSelector={() => setIsMapModalOpen(true)}
+          onOpenControls={() => setIsControlsOpen(true)}
+          onOpenPermissions={() => setIsPermissionsOpen(true)}
+          onLeave={handleLeave}
+        />
+      </div>
 
-      {/* Main Game Area */}
-      <div className="relative flex-1 w-full h-full overflow-hidden">
-        {/* Phaser canvas fills background */}
+      {/* ── Main Canvas Area — absolute, fills everything right of sidebar ── */}
+      <div
+        id="canvas-wrapper"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 220,
+          right: 0,
+          bottom: 0,
+          overflow: "hidden",
+        }}
+      >
+        {/* Phaser canvas fills this container */}
         <GameCanvas className="absolute inset-0 w-full h-full" />
 
-        {/* ── UI Overlay ────────────────────────────────────────────────────── */}
-        <div className="absolute inset-0 pointer-events-none flex flex-col justify-end p-4">
-          <div className="flex items-end justify-between gap-4 pointer-events-auto">
-            <ChatPanel
-              username={username}
-              disabled={colyseus.status !== "connected"}
-            />
-
+        {/* UI Overlay — video tiles (top-right) + bottom control bar */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+          }}
+        >
+          <div style={{ pointerEvents: "auto", width: "100%", height: "100%", position: "relative" }}>
             <VideoOverlay
               remoteVideoElements={livekit.remoteVideoElements}
               username={username}
+              onOpenMapSelector={() => setIsMapModalOpen(true)}
+              onOpenControls={() => setIsControlsOpen(true)}
+              onOpenPermissions={() => setIsPermissionsOpen(true)}
+              onToggleChat={() => setIsChatOpen((prev) => !prev)}
+              isChatOpen={isChatOpen}
             />
+
+            {/* Floating Chat Panel (Bottom Left) */}
+            <div
+              style={{
+                position: "absolute",
+                bottom: 24,
+                left: 16,
+                zIndex: 25,
+                pointerEvents: "auto",
+              }}
+            >
+              <ChatPanel
+                username={username}
+                disabled={false}
+                isOpen={isChatOpen}
+                onClose={() => setIsChatOpen(false)}
+              />
+            </div>
           </div>
         </div>
 
@@ -126,17 +191,30 @@ export function VirtualWorld() {
         {(colyseus.error || livekit.error) && (
           <div
             id="error-toast"
-            className="absolute top-4 left-1/2 -translate-x-1/2
-                       bg-red-900/90 border border-red-500/50 text-red-200
-                       text-xs font-mono px-4 py-2 rounded-lg backdrop-blur-md
-                       pointer-events-none z-40 shadow-xl"
+            style={{
+              position: "absolute",
+              top: 16,
+              left: "50%",
+              transform: "translateX(-50%)",
+              background: "rgba(127,29,29,0.9)",
+              border: "1px solid rgba(239,68,68,0.4)",
+              color: "#fca5a5",
+              fontSize: 11,
+              fontFamily: "monospace",
+              padding: "6px 16px",
+              borderRadius: 10,
+              backdropFilter: "blur(8px)",
+              pointerEvents: "none",
+              zIndex: 40,
+              boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+            }}
           >
             {colyseus.error ?? livekit.error}
           </div>
         )}
       </div>
 
-      {/* Modals */}
+      {/* ── Modals ── */}
       <MapSelectorModal
         isOpen={isMapModalOpen}
         onClose={() => setIsMapModalOpen(false)}
@@ -201,7 +279,7 @@ function JoinScreen({
             </span>
           </div>
           <p className="text-zinc-400 text-xs font-sans">
-            Spatial 2D Multiplayer Metaverse & Real-Time Proximity Communication
+            Spatial 2D Multiplayer Metaverse &amp; Real-Time Proximity Communication
           </p>
         </div>
 

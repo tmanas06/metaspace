@@ -310,8 +310,8 @@ export async function fetchRoomPresets(): Promise<MapPresetData[]> {
       return data as MapPresetData[];
     }
     return FALLBACK_MAP_PRESETS;
-  } catch (err) {
-    console.warn("[API] Fetch room presets error, using fallback rich presets:", err);
+  } catch {
+    console.info("[API] Backend server unavailable. Using fallback rich room presets.");
     return FALLBACK_MAP_PRESETS;
   }
 }
