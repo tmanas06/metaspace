@@ -30,12 +30,14 @@ export interface PlayerState {
 type InputListener = (input: BooleanInput) => void;
 type ProximityListener = (targetId: string) => void;
 type StateApplier = (players: PlayerState[]) => void;
+type MapThemeListener = (themeName: string) => void;
 
 class GameBridge {
   private inputListeners: InputListener[] = [];
   private proximityStartListeners: ProximityListener[] = [];
   private proximityEndListeners: ProximityListener[] = [];
   private stateApplier: StateApplier | null = null;
+  private mapThemeListener: MapThemeListener | null = null;
 
   // Called by Phaser when local player presses keys
   emitInput(input: BooleanInput) {
@@ -55,6 +57,18 @@ class GameBridge {
   // Called by Colyseus hook to push authoritative state into Phaser
   applyServerState(players: PlayerState[]) {
     if (this.stateApplier) this.stateApplier(players);
+  }
+
+  // Called by React when active map changes
+  setMapTheme(themeName: string) {
+    if (this.mapThemeListener) this.mapThemeListener(themeName);
+  }
+
+  registerMapThemeListener(fn: MapThemeListener) {
+    this.mapThemeListener = fn;
+    return () => {
+      this.mapThemeListener = null;
+    };
   }
 
   // --- Subscribe methods ---

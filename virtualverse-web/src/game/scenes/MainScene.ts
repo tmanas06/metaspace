@@ -62,38 +62,18 @@ export class MainScene extends Phaser.Scene {
     super({ key: "MainScene" });
   }
 
+  private mapGraphics!: Phaser.GameObjects.Graphics;
+  private currentThemeName = "Event Hall & Main Stage";
+
   create() {
-    // ── Draw floor + walls using a single Graphics object ──────────────────
-    const gfx = this.add.graphics();
+    this.mapGraphics = this.add.graphics();
+    this.drawMapTheme(this.currentThemeName);
 
-    // Floor — alternating tiles with clearly visible contrast
-    for (let row = 0; row < MAP_ROWS; row++) {
-      for (let col = 0; col < MAP_COLS; col++) {
-        const color = (row + col) % 2 === 0 ? 0x1e2a4a : 0x2a3d6e;  // blue shades
-        gfx.fillStyle(color, 1);
-        gfx.fillRect(col * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-      }
-    }
-
-    // Grid lines for visibility
-    gfx.lineStyle(1, 0x4a6ba8, 0.3);
-    for (let col = 0; col <= MAP_COLS; col++) {
-      gfx.lineBetween(col * TILE_SIZE, 0, col * TILE_SIZE, WORLD_H);
-    }
-    for (let row = 0; row <= MAP_ROWS; row++) {
-      gfx.lineBetween(0, row * TILE_SIZE, WORLD_W, row * TILE_SIZE);
-    }
-
-    // Wall tiles — bright accent color so they're clearly walls
-    gfx.fillStyle(0x1565c0, 1);
-    for (let col = 0; col < MAP_COLS; col++) {
-      gfx.fillRect(col * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
-      gfx.fillRect(col * TILE_SIZE, (MAP_ROWS - 1) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-    }
-    for (let row = 1; row < MAP_ROWS - 1; row++) {
-      gfx.fillRect(0, row * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-      gfx.fillRect((MAP_COLS - 1) * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-    }
+    // Register theme listener
+    gameBridge.registerMapThemeListener((themeName: string) => {
+      this.currentThemeName = themeName;
+      this.drawMapTheme(themeName);
+    });
 
     // ── Physics world bounds ────────────────────────────────────────────────
     this.physics.world.setBounds(0, 0, WORLD_W, WORLD_H);
@@ -291,5 +271,77 @@ export class MainScene extends Phaser.Scene {
 
   setLocalSessionId(id: string) {
     this.localSessionId = id;
+  }
+
+  private drawMapTheme(themeName: string) {
+    if (!this.mapGraphics) return;
+    this.mapGraphics.clear();
+
+    const gfx = this.mapGraphics;
+    let colorA = 0x1e2a4a;
+    let colorB = 0x2a3d6e;
+    let gridColor = 0x4a6ba8;
+    let wallColor = 0x1565c0;
+
+    if (themeName.includes("Cyberpunk")) {
+      colorA = 0x2e1065;
+      colorB = 0x4c1d95;
+      gridColor = 0xa855f7;
+      wallColor = 0x06b6d4;
+    } else if (themeName.includes("Sci-Fi")) {
+      colorA = 0x0f172a;
+      colorB = 0x1e293b;
+      gridColor = 0x38bdf8;
+      wallColor = 0x0284c7;
+    } else if (themeName.includes("Zen Garden")) {
+      colorA = 0x134e4a;
+      colorB = 0x0f766e;
+      gridColor = 0x2dd4bf;
+      wallColor = 0xd97706;
+    } else if (themeName.includes("Classroom")) {
+      colorA = 0x261c14;
+      colorB = 0x3b2b1e;
+      gridColor = 0xb45309;
+      wallColor = 0x059669;
+    } else if (themeName.includes("Playground")) {
+      colorA = 0x064e3b;
+      colorB = 0x047857;
+      gridColor = 0x34d399;
+      wallColor = 0x2563eb;
+    } else if (themeName.includes("Startup Office")) {
+      colorA = 0x1e293b;
+      colorB = 0x334155;
+      gridColor = 0x64748b;
+      wallColor = 0x6366f1;
+    }
+
+    // Draw floor tiles
+    for (let row = 0; row < MAP_ROWS; row++) {
+      for (let col = 0; col < MAP_COLS; col++) {
+        const color = (row + col) % 2 === 0 ? colorA : colorB;
+        gfx.fillStyle(color, 1);
+        gfx.fillRect(col * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+      }
+    }
+
+    // Grid lines
+    gfx.lineStyle(1, gridColor, 0.3);
+    for (let col = 0; col <= MAP_COLS; col++) {
+      gfx.lineBetween(col * TILE_SIZE, 0, col * TILE_SIZE, WORLD_H);
+    }
+    for (let row = 0; row <= MAP_ROWS; row++) {
+      gfx.lineBetween(0, row * TILE_SIZE, WORLD_W, row * TILE_SIZE);
+    }
+
+    // Border wall tiles
+    gfx.fillStyle(wallColor, 1);
+    for (let col = 0; col < MAP_COLS; col++) {
+      gfx.fillRect(col * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
+      gfx.fillRect(col * TILE_SIZE, (MAP_ROWS - 1) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    }
+    for (let row = 1; row < MAP_ROWS - 1; row++) {
+      gfx.fillRect(0, row * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+      gfx.fillRect((MAP_COLS - 1) * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+    }
   }
 }

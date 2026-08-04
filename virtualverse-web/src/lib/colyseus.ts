@@ -58,7 +58,7 @@ class ColyseusManager {
     return this.state;
   }
 
-  async connect(username: string) {
+  async connect(username: string, mapPreset: string = "Event Hall & Main Stage") {
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
     if (!wsUrl) {
       console.error("[Colyseus] NEXT_PUBLIC_WS_URL is not set");
@@ -70,7 +70,7 @@ class ColyseusManager {
 
     try {
       this.client = new Colyseus.Client(wsUrl);
-      this.room = await this.client.joinOrCreate("MapRoom", { username });
+      this.room = await this.client.joinOrCreate("MapRoom", { username, mapPreset });
 
       this.setState({
         status: "connected",
