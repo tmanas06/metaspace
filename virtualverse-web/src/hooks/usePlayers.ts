@@ -6,29 +6,33 @@ import { colyseusManager } from "@/lib/colyseus";
 export interface PlayerEntry {
   sessionId: string;
   username: string;
-  /** Optional sub-status label, e.g. "Walkin", "Online", "Away" */
+  /** Optional sub-status label, e.g. "You", "Online", "Away" */
   statusLabel?: string;
   isLocal?: boolean;
 }
 
 /**
  * usePlayers — Subscribes to Colyseus state and returns a live
- * list of PlayerEntry objects suitable for rendering in the sidebar.
- *
- * Falls back to a single entry for the local user when the server
- * hasn't delivered a player list yet.
+ * list of PlayerEntry objects for all connected players in the room.
  */
 export function usePlayers(localUsername: string): PlayerEntry[] {
   const [players, setPlayers] = useState<PlayerEntry[]>([]);
 
   useEffect(() => {
-    // Re-derive sidebar list whenever Colyseus state changes
-    const unsub = colyseusManager.onStatusChange((state) => {
-      // colyseusManager doesn't expose the raw players map directly,
-      // so we watch for state updates and merge with what GameBridge knows.
-      // For now surface a single local entry; full roster is forwarded
-      // via gameBridge.applyServerState → Phaser. If you later want to
-      // display the roster here too, pipe it through a shared store.
+    // Subscribe to live room player list updates from Colyseus
+    const unsubPlayers = colyseusManager.onPlayersChange((livePlayers) => {
+      if (livePlayers && livePlayers.length > 0) {
+        setPlayers(livePlayers);
+      } else {
+        setPlayers(
+          localUsername
+            ? [{ sessionId: "local", username: localUsername, isLocal: true }]
+            : []
+        );
+      }
+    });
+
+    const unsubStatus = colyseusManager.onStatusChange((state) => {
       if (state.status !== "connected") {
         setPlayers(
           localUsername
@@ -38,17 +42,10 @@ export function usePlayers(localUsername: string): PlayerEntry[] {
       }
     });
 
-    // Seed immediately
-    const cur = colyseusManager.getState();
-    if (cur.status !== "connected") {
-      setPlayers(
-        localUsername
-          ? [{ sessionId: "local", username: localUsername, isLocal: true }]
-          : []
-      );
-    }
-
-    return unsub;
+    return () => {
+      unsubPlayers();
+      unsubStatus();
+    };
   }, [localUsername]);
 
   return players;

@@ -146,7 +146,6 @@ class LiveKitManager {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ targetSessionId: targetId, roomName: "MapRoom" }),
-          credentials: "include",
         });
         if (res.ok) {
           const data = await res.json();
@@ -161,7 +160,6 @@ class LiveKitManager {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ targetSessionId: targetId, roomName: "MapRoom" }),
-          credentials: "include",
         });
         if (!res2.ok) {
           throw new Error(`Token fetch failed (${res2.status}). Open 2 browser tabs & walk near each other for proximity video.`);

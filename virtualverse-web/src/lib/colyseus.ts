@@ -13,8 +13,7 @@
 
 import * as Colyseus from "colyseus.js";
 import { gameBridge, BooleanInput, PlayerState } from "@/game/GameBridge";
-// PhaserGame is imported dynamically at runtime to prevent Phaser (which
-// references window at module evaluation) from being bundled in SSR.
+import { PlayerEntry } from "@/hooks/usePlayers";
 
 export type ConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
 
@@ -30,9 +29,13 @@ type StatusCallback = (state: ColyseusState) => void;
 
 class ColyseusManager {
   private client: Colyseus.Client | null = null;
-  private room: Colyseus.Room | null = null;
+  private room: Colyseus.Room<any> | null = null;
   private statusCallbacks: StatusCallback[] = [];
+  private playersCallbacks: ((players: PlayerEntry[]) => void)[] = [];
+  private chatCallbacks: ((msg: { id: string; username: string; text: string; timestamp: Date; local?: boolean }) => void)[] = [];
   private unsubscribeInput: (() => void) | null = null;
+
+  private playersState: PlayerEntry[] = [];
 
   private state: ColyseusState = {
     status: "disconnected",
@@ -47,18 +50,19 @@ class ColyseusManager {
 
   onStatusChange(fn: StatusCallback) {
     this.statusCallbacks.push(fn);
-    // Immediately emit current state to new subscriber
     fn(this.state);
     return () => {
       this.statusCallbacks = this.statusCallbacks.filter((cb) => cb !== fn);
     };
   }
 
-  getState() {
-    return this.state;
+  onPlayersChange(fn: (players: PlayerEntry[]) => void) {
+    this.playersCallbacks.push(fn);
+    fn(this.playersState);
+    return () => {
+      this.playersCallbacks = this.playersCallbacks.filter((cb) => cb !== fn);
+    };
   }
-
-  private chatCallbacks: ((msg: { id: string; username: string; text: string; timestamp: Date; local?: boolean }) => void)[] = [];
 
   onChatMessage(fn: (msg: { id: string; username: string; text: string; timestamp: Date; local?: boolean }) => void) {
     this.chatCallbacks.push(fn);
@@ -67,9 +71,20 @@ class ColyseusManager {
     };
   }
 
-  sendChatMessage(text: string) {
+  getState() {
+    return this.state;
+  }
+
+  getPlayers() {
+    return this.playersState;
+  }
+
+  sendChatMessage(text: string, username?: string) {
     if (this.room && this.state.status === "connected") {
-      this.room.send("chat", { text });
+      const payload = { text, username: username || "User" };
+      this.room.send("chat", payload);
+      this.room.send("message", payload);
+      this.room.send("chat-message", payload);
     }
   }
 
@@ -93,10 +108,11 @@ class ColyseusManager {
         error: null,
       });
 
-      // Tell Phaser which session ID belongs to the local player (dynamic import avoids SSR issue)
-      import("@/game/PhaserGame").then(({ getMainScene }) => {
-        getMainScene()?.setLocalSessionId(this.room!.sessionId);
-      });
+      // Tell Phaser which session ID belongs to local player
+      const scene = (await import("@/game/PhaserGame")).getMainScene();
+      if (scene) {
+        scene.setLocalSessionId(this.room.sessionId);
+      }
 
       // Forward keyboard input → server
       this.unsubscribeInput = gameBridge.onInput((input: BooleanInput) => {
@@ -106,22 +122,34 @@ class ColyseusManager {
       });
 
       // Receive chat messages from server
-      this.room.onMessage("chat", (data: { username: string; text: string }) => {
+      const handleChatMsg = (data: any) => {
+        let senderName = "User";
+        let textMsg = "";
+        if (typeof data === "string") {
+          textMsg = data;
+        } else if (data && typeof data === "object") {
+          senderName = data.username || data.name || data.sender || "User";
+          textMsg = data.text || data.message || data.content || String(data);
+        }
         const msg = {
           id: crypto.randomUUID(),
-          username: data.username || "Anonymous",
-          text: data.text,
+          username: senderName,
+          text: textMsg,
           timestamp: new Date(),
         };
         this.chatCallbacks.forEach((fn) => fn(msg));
-      });
+      };
 
-      // Receive authoritative state from server
+      this.room.onMessage("chat", handleChatMsg);
+      this.room.onMessage("message", handleChatMsg);
+      this.room.onMessage("chat-message", handleChatMsg);
+
+      // Listen for player changes via Colyseus Schema event listeners on room.state
       this.room.onStateChange((serverState) => {
         this.handleStateChange(serverState);
       });
 
-      // Proximity events from server (if server emits them directly)
+      // Proximity events from server
       this.room.onMessage("proximity-start", (data: { targetId: string }) => {
         gameBridge.emitProximityStart(data.targetId);
       });
@@ -161,39 +189,54 @@ class ColyseusManager {
     }
   }
 
-  private handleStateChange(serverState: Record<string, unknown>) {
-    const playersMap = serverState?.players as
-      | Map<string, Record<string, unknown>>
-      | undefined;
+  private handleStateChange(serverState: any) {
+    if (!serverState) return;
 
-    if (!playersMap) return;
+    // Colyseus room state players collection (MapSchema or Object)
+    const rawPlayers = serverState.players;
+    if (!rawPlayers) return;
 
-    const players: PlayerState[] = [];
-    playersMap.forEach((p: any, sessionId: string) => {
-      // Log raw player object from server to inspect schema
-      console.log(`[Colyseus] Player raw state for ${sessionId}:`, p);
+    const playersForPhaser: PlayerState[] = [];
+    const playerEntriesForSidebar: PlayerEntry[] = [];
 
-      // Extract x and y safely — check p.x, p.y or nested p.position
-      const posX = p?.x ?? p?.position?.x ?? p?.posX;
-      const posY = p?.y ?? p?.position?.y ?? p?.posY;
+    const processPlayer = (p: any, sessionId: string) => {
+      if (!p) return;
+      const isLocal = sessionId === this.state.sessionId;
+      const username = String(
+        p.username ?? p.name ?? p.displayName ?? (isLocal ? "You" : `User ${sessionId.slice(0, 4)}`)
+      );
+      const posX = p.x ?? p.position?.x ?? p.posX;
+      const posY = p.y ?? p.position?.y ?? p.posY;
 
-      // Only push if x and y are valid numbers
+      playerEntriesForSidebar.push({
+        sessionId,
+        username,
+        statusLabel: isLocal ? "You" : "Online",
+        isLocal,
+      });
+
       if (typeof posX === "number" && !isNaN(posX) && typeof posY === "number" && !isNaN(posY)) {
-        players.push({
+        playersForPhaser.push({
           sessionId,
           x: posX,
           y: posY,
-          username: String(p?.username ?? p?.name ?? ""),
+          username,
         });
-      } else {
-        console.warn(`[Colyseus] Invalid position for player ${sessionId}: x=${posX}, y=${posY}`);
       }
-    });
+    };
 
-    // Push to Phaser via bridge (reconciliation happens in MainScene)
-    if (players.length > 0) {
-      gameBridge.applyServerState(players);
+    if (typeof rawPlayers.forEach === "function") {
+      rawPlayers.forEach((p: any, key: string) => processPlayer(p, key));
+    } else if (typeof rawPlayers === "object") {
+      Object.entries(rawPlayers).forEach(([key, p]) => processPlayer(p, key));
     }
+
+    // Always push player list to Phaser so MainScene updates position and cleans up disconnected players
+    gameBridge.applyServerState(playersForPhaser);
+
+    // Notify React UI subscribers (sidebar roster)
+    this.playersState = playerEntriesForSidebar;
+    this.playersCallbacks.forEach((fn) => fn(playerEntriesForSidebar));
   }
 
   async disconnect() {
@@ -207,6 +250,8 @@ class ColyseusManager {
     this.unsubscribeInput = null;
     this.room = null;
     this.client = null;
+    this.playersState = [];
+    this.playersCallbacks.forEach((fn) => fn([]));
   }
 }
 

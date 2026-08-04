@@ -430,6 +430,11 @@ export class MainScene extends Phaser.Scene {
 
   setLocalSessionId(id: string) {
     this.localSessionId = id;
+    if (this.remoteAvatars.has(id)) {
+      const avatar = this.remoteAvatars.get(id);
+      avatar?.container.destroy();
+      this.remoteAvatars.delete(id);
+    }
   }
 
   /**

@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "colyseus.js": "^0.16.22",
+    "colyseus.js": "^0.15.18",
     "livekit-client": "^2.21.0",
     "next": "16.3.0",
     "phaser": "3.87.0",
