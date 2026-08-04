@@ -1,0 +1,31 @@
+```mermaid
+sequenceDiagram
+    participant Browser as Browser (Client)
+    participant NestJS as NestJS API (Ubuntu)
+    participant LiveKitSrv as LiveKit Server (Ubuntu)
+    participant Remote as Remote Participant
+
+    Browser->>NestJS: POST /livekit/token\n{ targetSessionId: "abc123" }
+    Note over NestJS: Validates session,\ngenerates JWT with\nroom name + identity
+
+    NestJS-->>Browser: { token: "eyJhbGciOiJIUzI1..." }
+
+    Browser->>LiveKitSrv: Room.connect(NEXT_PUBLIC_LIVEKIT_URL, token)
+    LiveKitSrv-->>Browser: Connected ✓
+
+    Browser->>LiveKitSrv: Publish camera track
+    Browser->>LiveKitSrv: Publish microphone track
+
+    Remote->>LiveKitSrv: Room.connect(same room, own token)
+    LiveKitSrv-->>Remote: Connected ✓
+
+    LiveKitSrv->>Browser: TrackSubscribed (remote video)
+    Browser->>Browser: track.attach() → HTMLVideoElement\nRender in VideoOverlay
+
+    LiveKitSrv->>Browser: TrackSubscribed (remote audio)
+    Browser->>Browser: track.attach() → audio plays
+
+    Note over Browser: Avatar walks away (proximity-end)
+    Browser->>LiveKitSrv: Room.disconnect()
+    Browser->>Browser: Stop local tracks\nRemove video elements
+```

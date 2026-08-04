@@ -1,0 +1,45 @@
+```mermaid
+graph TB
+    subgraph Windows ["🖥️ Windows Client (this machine)"]
+        Browser["Browser\n(Next.js App)"]
+        Phaser["Phaser 3\nGame Engine"]
+        ColyseusClient["colyseus.js\nClient"]
+        LiveKitClient["livekit-client\nSDK"]
+    end
+
+    subgraph CF ["☁️ Cloudflare Tunnel"]
+        Tunnel["nursery-directive-gray-jennifer\n.trycloudflare.com"]
+    end
+
+    subgraph Ubuntu ["🐧 Ubuntu Server"]
+        Nginx["Nginx\n(reverse proxy)"]
+
+        subgraph Docker ["Docker Compose"]
+            NestJS["NestJS\n:3001\n(REST + Colyseus)"]
+            LiveKitServer["LiveKit Server\n:7880–7881"]
+            Postgres["PostgreSQL\n:5432"]
+            Redis["Redis\n:6379"]
+            MinIO["MinIO\n:9000"]
+            Cloudflared["cloudflared\n(tunnel daemon)"]
+        end
+    end
+
+    Browser -->|"HTTPS REST\nNEXT_PUBLIC_API_URL"| Tunnel
+    Browser -->|"WSS Colyseus\nNEXT_PUBLIC_WS_URL"| Tunnel
+    Browser -->|"WSS LiveKit\nNEXT_PUBLIC_LIVEKIT_URL"| Tunnel
+
+    Tunnel --> Nginx
+    Nginx --> NestJS
+    Nginx --> LiveKitServer
+
+    NestJS --> Postgres
+    NestJS --> Redis
+    NestJS --> MinIO
+    NestJS -->|"issues tokens"| LiveKitServer
+
+    Cloudflared -->|"outbound tunnel"| CF
+
+    Browser -.->|"Phaser drives\nper-frame logic"| Phaser
+    Browser -.->|"GameBridge\nevent bus"| ColyseusClient
+    Browser -.->|"proximity events\nfrom GameBridge"| LiveKitClient
+```

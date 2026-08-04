@@ -1,0 +1,50 @@
+```mermaid
+sequenceDiagram
+    participant P as Phaser (MainScene)
+    participant B as GameBridge
+    participant C as colyseus.js
+    participant S as MapRoom (Ubuntu)
+    participant LK as LiveKit Manager
+
+    Note over P,S: Normal movement loop
+
+    P->>P: Player presses key (WASD/arrow)
+    P->>P: Apply velocity immediately (client-side prediction)
+    P->>B: emitInput({ left, right, up, down })
+    B->>C: input listener fires
+    C->>S: room.send("input", { left, right, up, down })
+
+    Note over S: Server simulates authoritative position
+    S-->>C: onStateChange(players[])
+    C->>B: applyServerState(players)
+    B->>P: registerStateApplier callback
+
+    alt drift > 50px
+        P->>P: SNAP to server position
+    else drift > 5px
+        P->>P: LERP 30% toward server position
+    else drift ≤ 5px
+        P->>P: Trust client prediction (no correction)
+    end
+
+    Note over P,LK: Proximity detection
+
+    P->>P: checkProximity() every frame
+    P->>B: emitProximityStart(targetId)
+    B->>LK: onProximityStart listener (debounced 800ms)
+
+    alt proximity confirmed (800ms debounce passes)
+        LK->>S: POST /livekit/token { targetSessionId }
+        S-->>LK: { token: "eyJ..." }
+        LK->>LK: Room.connect(LIVEKIT_URL, token)
+        LK->>LK: Publish cam + mic
+    end
+
+    P->>B: emitProximityEnd(targetId)
+    B->>LK: onProximityEnd listener (debounced 800ms)
+
+    alt separation confirmed (800ms debounce passes)
+        LK->>LK: Room.disconnect()
+        LK->>LK: Stop local tracks, clear video elements
+    end
+```
