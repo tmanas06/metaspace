@@ -1,38 +1,25 @@
 import Phaser from "phaser";
 import { gameBridge, BooleanInput, PlayerState } from "../GameBridge";
+import { MapPresetData, FALLBACK_MAP_PRESETS } from "@/lib/api";
 
-// Tile size in pixels
-const TILE_SIZE = 32;
-// Map dimensions in tiles
-const MAP_COLS = 20;
-const MAP_ROWS = 20;
-// World pixel dimensions
-const WORLD_W = MAP_COLS * TILE_SIZE;
-const WORLD_H = MAP_ROWS * TILE_SIZE;
-// Proximity radius in pixels — triggers LiveKit
-const PROXIMITY_RADIUS = TILE_SIZE * 2.5;
+const PROXIMITY_RADIUS = 100;
 
 interface RemoteAvatar {
   sessionId: string;
-  sprite: Phaser.GameObjects.Rectangle;
-  label: Phaser.GameObjects.Text;
+  container: Phaser.GameObjects.Container;
   serverX: number;
   serverY: number;
 }
 
 export class MainScene extends Phaser.Scene {
-  // Local player — Rectangle with a physics body attached
-  private player!: Phaser.GameObjects.Rectangle;
+  private playerContainer!: Phaser.GameObjects.Container;
   private localSessionId = "";
 
-  // Predicted position (client-side prediction)
-  private predictedX = 0;
-  private predictedY = 0;
+  private predictedX = 400;
+  private predictedY = 400;
 
-  // Static walls group
   private walls!: Phaser.Physics.Arcade.StaticGroup;
 
-  // Input keys
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd!: {
     up: Phaser.Input.Keyboard.Key;
@@ -41,13 +28,9 @@ export class MainScene extends Phaser.Scene {
     right: Phaser.Input.Keyboard.Key;
   };
 
-  // Remote players
   private remoteAvatars: Map<string, RemoteAvatar> = new Map();
-
-  // Proximity tracking
   private proximityActive: Set<string> = new Set();
 
-  // Last input sent
   private lastInput: BooleanInput = {
     left: false,
     right: false,
@@ -55,74 +38,60 @@ export class MainScene extends Phaser.Scene {
     down: false,
   };
 
-  // Speed pixels/second
-  private readonly SPEED = TILE_SIZE * 5;
+  private readonly SPEED = 160;
+
+  // Render layers
+  private mapGraphics!: Phaser.GameObjects.Graphics;
+  private zoneLabelsGroup!: Phaser.GameObjects.Group;
+  private currentMapData: MapPresetData = FALLBACK_MAP_PRESETS[0];
 
   constructor() {
     super({ key: "MainScene" });
   }
 
-  private mapGraphics!: Phaser.GameObjects.Graphics;
-  private currentThemeName = "Event Hall & Main Stage";
-
   create() {
     this.mapGraphics = this.add.graphics();
-    this.drawMapTheme(this.currentThemeName);
-
-    // Register theme listener
-    gameBridge.registerMapThemeListener((themeName: string) => {
-      this.currentThemeName = themeName;
-      this.drawMapTheme(themeName);
-    });
-
-    // ── Physics world bounds ────────────────────────────────────────────────
-    this.physics.world.setBounds(0, 0, WORLD_W, WORLD_H);
-
-    // ── Wall physics bodies ─────────────────────────────────────────────────
-    // Use a StaticGroup of invisible Zones for collision
+    this.zoneLabelsGroup = this.add.group();
     this.walls = this.physics.add.staticGroup();
 
-    const addWall = (col: number, row: number) => {
-      const cx = col * TILE_SIZE + TILE_SIZE / 2;
-      const cy = row * TILE_SIZE + TILE_SIZE / 2;
-      const zone = this.add.zone(cx, cy, TILE_SIZE, TILE_SIZE);
-      this.physics.add.existing(zone, true);
-      (zone.body as Phaser.Physics.Arcade.StaticBody).setSize(TILE_SIZE, TILE_SIZE);
-      this.walls.add(zone as unknown as Phaser.GameObjects.GameObject);
-    };
+    // Render initial map
+    this.buildMap(this.currentMapData);
 
-    for (let col = 0; col < MAP_COLS; col++) {
-      addWall(col, 0);
-      addWall(col, MAP_ROWS - 1);
-    }
-    for (let row = 1; row < MAP_ROWS - 1; row++) {
-      addWall(0, row);
-      addWall(MAP_COLS - 1, row);
-    }
+    // Register map data listener
+    gameBridge.registerMapThemeListener((mapData: MapPresetData | string) => {
+      if (typeof mapData === "string") {
+        const found = FALLBACK_MAP_PRESETS.find((m) => m.name === mapData || m.id === mapData);
+        if (found) {
+          this.currentMapData = found;
+          this.buildMap(found);
+        }
+      } else if (mapData && typeof mapData === "object") {
+        this.currentMapData = mapData;
+        this.buildMap(mapData);
+      }
+    });
 
-    // ── Local player ────────────────────────────────────────────────────────
-    const startX = Math.floor(MAP_COLS / 2) * TILE_SIZE + TILE_SIZE / 2;
-    const startY = Math.floor(MAP_ROWS / 2) * TILE_SIZE + TILE_SIZE / 2;
+    // ── Local player avatar creation (Gather.town style) ──────────────────────
+    const startX = this.currentMapData.spawnPoint?.x ?? 400;
+    const startY = this.currentMapData.spawnPoint?.y ?? 400;
     this.predictedX = startX;
     this.predictedY = startY;
 
-    // Rectangle with physics body — bright indigo, clearly visible
-    this.player = this.add.rectangle(startX, startY, 26, 26, 0x818cf8);
-    this.player.setStrokeStyle(2, 0xffffff);
-    this.physics.add.existing(this.player);
-    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    this.playerContainer = this.createAvatarContainer(startX, startY, "You", 0x6366f1, true);
+    this.physics.add.existing(this.playerContainer);
+    const body = this.playerContainer.body as Phaser.Physics.Arcade.Body;
     body.setCollideWorldBounds(true);
     body.setSize(24, 24);
+    body.setOffset(-12, -12);
 
-    // Wall collision
-    this.physics.add.collider(this.player, this.walls);
+    // Collide player with walls
+    this.physics.add.collider(this.playerContainer, this.walls);
 
-    // Camera
-    this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
-    this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+    // Camera settings
+    this.cameras.main.startFollow(this.playerContainer, true, 0.1, 0.1);
     this.cameras.main.setZoom(1);
 
-    // Input
+    // Input keys
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.wasd = {
       up: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.W),
@@ -136,15 +105,185 @@ export class MainScene extends Phaser.Scene {
       this.reconcileState(players);
     });
 
-    // Debug: verify scene started (visible in dev console)
-    console.log("[MainScene] created — player at", startX, startY);
+    console.log("[MainScene] Gather.town-style spatial map created:", this.currentMapData.name);
+  }
+
+  // ─── Build Map with Zones, Obstacles & Furniture ─────────────────────────
+
+  private buildMap(data: MapPresetData) {
+    const width = data.width || 800;
+    const height = data.height || 800;
+    const tileSize = data.tileSize || 32;
+
+    // Reset physics world bounds & camera bounds
+    this.physics.world.setBounds(0, 0, width, height);
+    this.cameras.main.setBounds(0, 0, width, height);
+
+    // Clear old physics walls
+    this.walls.clear(true, true);
+    this.zoneLabelsGroup.clear(true, true);
+    this.mapGraphics.clear();
+
+    const gfx = this.mapGraphics;
+    const style = data.style || {
+      floorColor: "#1e293b",
+      wallColor: "#0f172a",
+      gridColor: "#334155",
+      accentColor: "#6366f1",
+    };
+
+    const hexColor = (c: string) => parseInt(c.replace("#", "0x"), 16);
+    const floorCol = hexColor(style.floorColor || "#1e293b");
+    const wallCol = hexColor(style.wallColor || "#0f172a");
+    const gridCol = hexColor(style.gridColor || "#334155");
+
+    // 1. Draw base floor
+    gfx.fillStyle(floorCol, 1);
+    gfx.fillRect(0, 0, width, height);
+
+    // Floor grid pattern
+    gfx.lineStyle(1, gridCol, 0.25);
+    for (let x = 0; x <= width; x += tileSize) {
+      gfx.lineBetween(x, 0, x, height);
+    }
+    for (let y = 0; y <= height; y += tileSize) {
+      gfx.lineBetween(0, y, width, y);
+    }
+
+    // 2. Draw Zones (Rooms / Lounges / Private Areas)
+    if (Array.isArray(data.zones)) {
+      data.zones.forEach((zone) => {
+        const zoneCol = hexColor(zone.color || "#6366f1");
+
+        // Fill zone with semi-transparent tint
+        gfx.fillStyle(zoneCol, zone.isPrivate ? 0.25 : 0.15);
+        gfx.fillRoundedRect(zone.x, zone.y, zone.width, zone.height, 8);
+
+        // Border outline
+        gfx.lineStyle(2, zoneCol, 0.8);
+        gfx.strokeRoundedRect(zone.x, zone.y, zone.width, zone.height, 8);
+
+        // Zone header label
+        const txt = this.add.text(
+          zone.x + 12,
+          zone.y + 10,
+          zone.name.toUpperCase(),
+          {
+            fontSize: "11px",
+            fontStyle: "bold",
+            color: "#ffffff",
+            backgroundColor: "#0f172ab0",
+            padding: { x: 6, y: 3 },
+          }
+        );
+        this.zoneLabelsGroup.add(txt);
+      });
+    }
+
+    // 3. Draw Furniture & Objects
+    if (Array.isArray(data.furniture)) {
+      data.furniture.forEach((f) => {
+        const fCol = hexColor(f.color || "#6366f1");
+
+        // Draw object fill & shadow
+        gfx.fillStyle(0x000000, 0.2);
+        gfx.fillRoundedRect(f.x + 3, f.y + 3, f.width, f.height, 6);
+
+        gfx.fillStyle(fCol, 1);
+        gfx.fillRoundedRect(f.x, f.y, f.width, f.height, 6);
+
+        gfx.lineStyle(2, 0xffffff, 0.4);
+        gfx.strokeRoundedRect(f.x, f.y, f.width, f.height, 6);
+
+        // Furniture label if specified
+        if (f.label) {
+          const fLabel = this.add.text(
+            f.x + f.width / 2,
+            f.y + f.height / 2,
+            f.label,
+            {
+              fontSize: "10px",
+              fontStyle: "bold",
+              color: "#ffffff",
+            }
+          ).setOrigin(0.5, 0.5);
+          this.zoneLabelsGroup.add(fLabel);
+        }
+
+        // Add collision body if furniture collides
+        if (f.collides !== false) {
+          const zone = this.add.zone(f.x + f.width / 2, f.y + f.height / 2, f.width, f.height);
+          this.physics.add.existing(zone, true);
+          this.walls.add(zone as unknown as Phaser.GameObjects.GameObject);
+        }
+      });
+    }
+
+    // 4. Draw Obstacles & Outer Walls
+    if (Array.isArray(data.obstacles)) {
+      data.obstacles.forEach((obs) => {
+        gfx.fillStyle(wallCol, 1);
+        gfx.fillRect(obs.x, obs.y, obs.width, obs.height);
+
+        gfx.lineStyle(2, hexColor(style.accentColor || "#6366f1"), 0.5);
+        gfx.strokeRect(obs.x, obs.y, obs.width, obs.height);
+
+        // Create static physics body for wall obstacle
+        const zone = this.add.zone(obs.x + obs.width / 2, obs.y + obs.height / 2, obs.width, obs.height);
+        this.physics.add.existing(zone, true);
+        this.walls.add(zone as unknown as Phaser.GameObjects.GameObject);
+      });
+    }
+
+    // Move spawn point if player exists
+    if (this.playerContainer && data.spawnPoint) {
+      this.playerContainer.setPosition(data.spawnPoint.x, data.spawnPoint.y);
+      this.predictedX = data.spawnPoint.x;
+      this.predictedY = data.spawnPoint.y;
+    }
+  }
+
+  // ─── Avatar Factory (Gather.town style character container) ───────────────
+
+  private createAvatarContainer(
+    x: number,
+    y: number,
+    name: string,
+    colorHex: number,
+    isLocal: boolean
+  ): Phaser.GameObjects.Container {
+    const container = this.add.container(x, y);
+
+    // Avatar body shadow
+    const shadow = this.add.ellipse(0, 10, 20, 8, 0x000000, 0.3);
+
+    // Avatar body circle
+    const body = this.add.circle(0, 0, 12, colorHex);
+    body.setStrokeStyle(2, 0xffffff);
+
+    // Status indicator dot
+    const statusDot = this.add.circle(8, -8, 4, 0x10b981);
+    statusDot.setStrokeStyle(1, 0x000000);
+
+    // Username label tag above avatar
+    const labelText = isLocal ? `${name} (You)` : name;
+    const label = this.add.text(0, -22, labelText, {
+      fontSize: "10px",
+      fontStyle: "bold",
+      color: "#ffffff",
+      backgroundColor: "#0f172ad0",
+      padding: { x: 5, y: 2 },
+    }).setOrigin(0.5, 0.5);
+
+    container.add([shadow, body, statusDot, label]);
+    return container;
   }
 
   // ─── Per-frame update ─────────────────────────────────────────────────────
 
   update(_time: number, _delta: number) {
-    if (!this.player?.body) return;
-    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    if (!this.playerContainer?.body) return;
+    const body = this.playerContainer.body as Phaser.Physics.Arcade.Body;
 
     const left = this.cursors.left.isDown || this.wasd.left.isDown;
     const right = this.cursors.right.isDown || this.wasd.right.isDown;
@@ -165,8 +304,8 @@ export class MainScene extends Phaser.Scene {
 
     body.setVelocity(vx, vy);
 
-    this.predictedX = this.player.x;
-    this.predictedY = this.player.y;
+    this.predictedX = this.playerContainer.x;
+    this.predictedY = this.playerContainer.y;
 
     const newInput: BooleanInput = { left, right, up, down };
     if (
@@ -181,10 +320,10 @@ export class MainScene extends Phaser.Scene {
 
     this.checkProximity();
 
+    // Interpolate remote avatars smoothly
     this.remoteAvatars.forEach((avatar) => {
-      avatar.sprite.x = Phaser.Math.Linear(avatar.sprite.x, avatar.serverX, 0.15);
-      avatar.sprite.y = Phaser.Math.Linear(avatar.sprite.y, avatar.serverY, 0.15);
-      avatar.label.setPosition(avatar.sprite.x, avatar.sprite.y - 20);
+      avatar.container.x = Phaser.Math.Linear(avatar.container.x, avatar.serverX, 0.15);
+      avatar.container.y = Phaser.Math.Linear(avatar.container.y, avatar.serverY, 0.15);
     });
   }
 
@@ -200,13 +339,13 @@ export class MainScene extends Phaser.Scene {
         const drift = Math.sqrt(dx * dx + dy * dy);
 
         if (drift > 50) {
-          this.player.setPosition(p.x, p.y);
+          this.playerContainer.setPosition(p.x, p.y);
           this.predictedX = p.x;
           this.predictedY = p.y;
         } else if (drift > 5) {
           const corrX = this.predictedX + dx * 0.3;
           const corrY = this.predictedY + dy * 0.3;
-          this.player.setPosition(corrX, corrY);
+          this.playerContainer.setPosition(corrX, corrY);
           this.predictedX = corrX;
           this.predictedY = corrY;
         }
@@ -216,17 +355,17 @@ export class MainScene extends Phaser.Scene {
       seenIds.add(p.sessionId);
 
       if (!this.remoteAvatars.has(p.sessionId)) {
-        const sprite = this.add.rectangle(p.x, p.y, 24, 24, 0xe11d48);
-        const label = this.add
-          .text(p.x, p.y - 20, p.username ?? p.sessionId.slice(0, 6), {
-            fontSize: "10px",
-            color: "#ffffff",
-          })
-          .setOrigin(0.5, 0.5);
+        // Create remote player avatar
+        const container = this.createAvatarContainer(
+          p.x,
+          p.y,
+          p.username ?? p.sessionId.slice(0, 6),
+          0xe11d48,
+          false
+        );
         this.remoteAvatars.set(p.sessionId, {
           sessionId: p.sessionId,
-          sprite,
-          label,
+          container,
           serverX: p.x,
           serverY: p.y,
         });
@@ -234,14 +373,12 @@ export class MainScene extends Phaser.Scene {
         const avatar = this.remoteAvatars.get(p.sessionId)!;
         avatar.serverX = p.x;
         avatar.serverY = p.y;
-        if (p.username) avatar.label.setText(p.username);
       }
     });
 
     this.remoteAvatars.forEach((avatar, id) => {
       if (!seenIds.has(id)) {
-        avatar.sprite.destroy();
-        avatar.label.destroy();
+        avatar.container.destroy();
         this.remoteAvatars.delete(id);
         if (this.proximityActive.has(id)) {
           gameBridge.emitProximityEnd(id);
@@ -255,8 +392,8 @@ export class MainScene extends Phaser.Scene {
 
   private checkProximity() {
     this.remoteAvatars.forEach((avatar, id) => {
-      const dx = this.player.x - avatar.sprite.x;
-      const dy = this.player.y - avatar.sprite.y;
+      const dx = this.playerContainer.x - avatar.container.x;
+      const dy = this.playerContainer.y - avatar.container.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
 
       if (dist < PROXIMITY_RADIUS && !this.proximityActive.has(id)) {
@@ -271,77 +408,5 @@ export class MainScene extends Phaser.Scene {
 
   setLocalSessionId(id: string) {
     this.localSessionId = id;
-  }
-
-  private drawMapTheme(themeName: string) {
-    if (!this.mapGraphics) return;
-    this.mapGraphics.clear();
-
-    const gfx = this.mapGraphics;
-    let colorA = 0x1e2a4a;
-    let colorB = 0x2a3d6e;
-    let gridColor = 0x4a6ba8;
-    let wallColor = 0x1565c0;
-
-    if (themeName.includes("Cyberpunk")) {
-      colorA = 0x2e1065;
-      colorB = 0x4c1d95;
-      gridColor = 0xa855f7;
-      wallColor = 0x06b6d4;
-    } else if (themeName.includes("Sci-Fi")) {
-      colorA = 0x0f172a;
-      colorB = 0x1e293b;
-      gridColor = 0x38bdf8;
-      wallColor = 0x0284c7;
-    } else if (themeName.includes("Zen Garden")) {
-      colorA = 0x134e4a;
-      colorB = 0x0f766e;
-      gridColor = 0x2dd4bf;
-      wallColor = 0xd97706;
-    } else if (themeName.includes("Classroom")) {
-      colorA = 0x261c14;
-      colorB = 0x3b2b1e;
-      gridColor = 0xb45309;
-      wallColor = 0x059669;
-    } else if (themeName.includes("Playground")) {
-      colorA = 0x064e3b;
-      colorB = 0x047857;
-      gridColor = 0x34d399;
-      wallColor = 0x2563eb;
-    } else if (themeName.includes("Startup Office")) {
-      colorA = 0x1e293b;
-      colorB = 0x334155;
-      gridColor = 0x64748b;
-      wallColor = 0x6366f1;
-    }
-
-    // Draw floor tiles
-    for (let row = 0; row < MAP_ROWS; row++) {
-      for (let col = 0; col < MAP_COLS; col++) {
-        const color = (row + col) % 2 === 0 ? colorA : colorB;
-        gfx.fillStyle(color, 1);
-        gfx.fillRect(col * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-      }
-    }
-
-    // Grid lines
-    gfx.lineStyle(1, gridColor, 0.3);
-    for (let col = 0; col <= MAP_COLS; col++) {
-      gfx.lineBetween(col * TILE_SIZE, 0, col * TILE_SIZE, WORLD_H);
-    }
-    for (let row = 0; row <= MAP_ROWS; row++) {
-      gfx.lineBetween(0, row * TILE_SIZE, WORLD_W, row * TILE_SIZE);
-    }
-
-    // Border wall tiles
-    gfx.fillStyle(wallColor, 1);
-    for (let col = 0; col < MAP_COLS; col++) {
-      gfx.fillRect(col * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
-      gfx.fillRect(col * TILE_SIZE, (MAP_ROWS - 1) * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-    }
-    for (let row = 1; row < MAP_ROWS - 1; row++) {
-      gfx.fillRect(0, row * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-      gfx.fillRect((MAP_COLS - 1) * TILE_SIZE, row * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-    }
   }
 }

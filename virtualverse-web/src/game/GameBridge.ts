@@ -27,17 +27,19 @@ export interface PlayerState {
   username?: string;
 }
 
+import { MapPresetData } from "@/lib/api";
+
 type InputListener = (input: BooleanInput) => void;
 type ProximityListener = (targetId: string) => void;
 type StateApplier = (players: PlayerState[]) => void;
-type MapThemeListener = (themeName: string) => void;
+type MapDataListener = (mapData: MapPresetData | string) => void;
 
 class GameBridge {
   private inputListeners: InputListener[] = [];
   private proximityStartListeners: ProximityListener[] = [];
   private proximityEndListeners: ProximityListener[] = [];
   private stateApplier: StateApplier | null = null;
-  private mapThemeListener: MapThemeListener | null = null;
+  private mapDataListener: MapDataListener | null = null;
 
   // Called by Phaser when local player presses keys
   emitInput(input: BooleanInput) {
@@ -59,15 +61,15 @@ class GameBridge {
     if (this.stateApplier) this.stateApplier(players);
   }
 
-  // Called by React when active map changes
-  setMapTheme(themeName: string) {
-    if (this.mapThemeListener) this.mapThemeListener(themeName);
+  // Called by React when active map data changes
+  setMapTheme(mapData: MapPresetData | string) {
+    if (this.mapDataListener) this.mapDataListener(mapData);
   }
 
-  registerMapThemeListener(fn: MapThemeListener) {
-    this.mapThemeListener = fn;
+  registerMapThemeListener(fn: MapDataListener) {
+    this.mapDataListener = fn;
     return () => {
-      this.mapThemeListener = null;
+      this.mapDataListener = null;
     };
   }
 

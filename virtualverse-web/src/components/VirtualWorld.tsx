@@ -15,7 +15,7 @@ import { PermissionsModal } from "@/components/ui/PermissionsModal";
 import { ControlsModal } from "@/components/ui/ControlsModal";
 import { useColyseus } from "@/hooks/useColyseus";
 import { useLiveKit } from "@/hooks/useLiveKit";
-import { fetchRoomPresets, DEFAULT_PRESETS } from "@/lib/api";
+import { fetchRoomPresets, FALLBACK_MAP_PRESETS, MapPresetData } from "@/lib/api";
 import { gameBridge } from "@/game/GameBridge";
 
 export function VirtualWorld() {
@@ -24,8 +24,8 @@ export function VirtualWorld() {
   const [inputUsername, setInputUsername] = useState("");
 
   // Map presets state
-  const [presets, setPresets] = useState<string[]>(DEFAULT_PRESETS);
-  const [selectedMap, setSelectedMap] = useState<string>("Event Hall & Main Stage");
+  const [presets, setPresets] = useState<MapPresetData[]>(FALLBACK_MAP_PRESETS);
+  const [selectedMapData, setSelectedMapData] = useState<MapPresetData>(FALLBACK_MAP_PRESETS[0]);
 
   // Modals state
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
@@ -39,8 +39,8 @@ export function VirtualWorld() {
   useEffect(() => {
     fetchRoomPresets().then((list) => {
       setPresets(list);
-      if (list.length > 0 && !list.includes(selectedMap)) {
-        setSelectedMap(list[0]);
+      if (list.length > 0) {
+        setSelectedMapData(list[0]);
       }
     });
   }, []);
@@ -48,8 +48,8 @@ export function VirtualWorld() {
   // Auto-connect Colyseus when user joins
   useEffect(() => {
     if (joined && username) {
-      colyseus.connect(username, selectedMap);
-      gameBridge.setMapTheme(selectedMap);
+      colyseus.connect(username, selectedMapData.name);
+      gameBridge.setMapTheme(selectedMapData);
     }
     return () => {
       if (joined) colyseus.disconnect();
@@ -58,9 +58,9 @@ export function VirtualWorld() {
   }, [joined, username]);
 
   // Update map theme in Phaser when active map changes
-  const handleSelectMap = (preset: string) => {
-    setSelectedMap(preset);
-    gameBridge.setMapTheme(preset);
+  const handleSelectMap = (presetData: MapPresetData) => {
+    setSelectedMapData(presetData);
+    gameBridge.setMapTheme(presetData);
   };
 
   const handleJoin = (e: React.FormEvent) => {
@@ -82,8 +82,8 @@ export function VirtualWorld() {
         usernameValue={inputUsername}
         onUsernameChange={setInputUsername}
         presets={presets}
-        selectedMap={selectedMap}
-        onSelectMap={setSelectedMap}
+        selectedMapData={selectedMapData}
+        onSelectMap={handleSelectMap}
       />
     );
   }
@@ -95,7 +95,7 @@ export function VirtualWorld() {
         colyseusStatus={colyseus.status}
         livekitStatus={livekit.status}
         username={username}
-        activeMap={selectedMap}
+        activeMap={selectedMapData.name}
         onOpenMapSelector={() => setIsMapModalOpen(true)}
         onOpenControls={() => setIsControlsOpen(true)}
         onOpenPermissions={() => setIsPermissionsOpen(true)}
@@ -138,7 +138,7 @@ export function VirtualWorld() {
         isOpen={isMapModalOpen}
         onClose={() => setIsMapModalOpen(false)}
         presets={presets}
-        activeMap={selectedMap}
+        activeMapData={selectedMapData}
         onSelectMap={handleSelectMap}
       />
 
@@ -162,15 +162,15 @@ function JoinScreen({
   usernameValue,
   onUsernameChange,
   presets,
-  selectedMap,
+  selectedMapData,
   onSelectMap,
 }: {
   onJoin: (e: React.FormEvent) => void;
   usernameValue: string;
   onUsernameChange: (v: string) => void;
-  presets: string[];
-  selectedMap: string;
-  onSelectMap: (v: string) => void;
+  presets: MapPresetData[];
+  selectedMapData: MapPresetData;
+  onSelectMap: (v: MapPresetData) => void;
 }) {
   return (
     <div className="min-h-screen bg-[#0d0d1a] flex items-center justify-center px-4 relative overflow-hidden">
@@ -230,16 +230,25 @@ function JoinScreen({
             <div className="relative">
               <select
                 id="map-select"
-                value={selectedMap}
-                onChange={(e) => onSelectMap(e.target.value)}
+                value={selectedMapData.id || selectedMapData.name}
+                onChange={(e) => {
+                  const target = presets.find(
+                    (p) => p.id === e.target.value || p.name === e.target.value
+                  );
+                  if (target) onSelectMap(target);
+                }}
                 className="w-full bg-white/5 border border-white/10 rounded-xl
                            text-white text-sm px-4 py-3 pr-10 appearance-none
                            focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
                            transition-all cursor-pointer font-sans"
               >
                 {presets.map((preset) => (
-                  <option key={preset} value={preset} className="bg-[#0f172a] text-white">
-                    {preset}
+                  <option
+                    key={preset.id || preset.name}
+                    value={preset.id || preset.name}
+                    className="bg-[#0f172a] text-white"
+                  >
+                    {preset.name} ({preset.theme || "Spatial Map"})
                   </option>
                 ))}
               </select>
