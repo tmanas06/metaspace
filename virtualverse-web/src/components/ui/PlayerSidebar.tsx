@@ -11,6 +11,8 @@ interface PlayerSidebarProps {
   onOpenControls: () => void;
   onOpenPermissions: () => void;
   onLeave: () => void;
+  /** Called when Invite is clicked; should return the URL to copy */
+  onInvite?: () => string;
 }
 
 /** Deterministic hue from a string so each player gets a consistent colour. */
@@ -56,9 +58,41 @@ export function PlayerSidebar({
   onOpenControls,
   onOpenPermissions,
   onLeave,
+  onInvite,
 }: PlayerSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [search, setSearch] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const handleInvite = () => {
+    const url = onInvite ? onInvite() : window.location.href;
+    // Try modern clipboard API first
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch(() => fallbackCopy(url));
+    } else {
+      fallbackCopy(url);
+    }
+  };
+
+  const fallbackCopy = (text: string) => {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.cssText = "position:fixed;top:-9999px;left:-9999px;opacity:0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // last resort: open prompt so user can copy manually
+      window.prompt("Copy this invite link:", text);
+    }
+  };
 
   const filtered = players.filter((p) =>
     p.username.toLowerCase().includes(search.toLowerCase())
@@ -315,10 +349,10 @@ export function PlayerSidebar({
           id="invite-btn"
           style={{
             width: "100%",
-            background: "rgba(99,102,241,0.15)",
-            border: "1px solid rgba(99,102,241,0.35)",
+            background: copied ? "rgba(16,185,129,0.2)" : "rgba(99,102,241,0.15)",
+            border: `1px solid ${copied ? "rgba(16,185,129,0.5)" : "rgba(99,102,241,0.35)"}`,
             borderRadius: 9,
-            color: "#a5b4fc",
+            color: copied ? "#6ee7b7" : "#a5b4fc",
             fontSize: 12,
             fontWeight: 600,
             padding: "8px 0",
@@ -327,28 +361,39 @@ export function PlayerSidebar({
             alignItems: "center",
             justifyContent: "center",
             gap: 6,
-            transition: "background 0.15s, border-color 0.15s",
+            transition: "background 0.15s, border-color 0.15s, color 0.15s",
             fontFamily: "inherit",
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = "rgba(99,102,241,0.25)";
-            (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(99,102,241,0.6)";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = "rgba(99,102,241,0.15)";
-            (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(99,102,241,0.35)";
-          }}
-          onClick={() => {
-            if (navigator.clipboard) {
-              navigator.clipboard.writeText(window.location.href);
+            if (!copied) {
+              (e.currentTarget as HTMLButtonElement).style.background = "rgba(99,102,241,0.25)";
+              (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(99,102,241,0.6)";
             }
           }}
-          title="Copy invite link"
+          onMouseLeave={(e) => {
+            if (!copied) {
+              (e.currentTarget as HTMLButtonElement).style.background = "rgba(99,102,241,0.15)";
+              (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(99,102,241,0.35)";
+            }
+          }}
+          onClick={handleInvite}
+          title={copied ? "Link copied!" : "Copy invite link"}
         >
-          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-          </svg>
-          Invite
+          {copied ? (
+            <>
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Copied!
+            </>
+          ) : (
+            <>
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              </svg>
+              Invite
+            </>
+          )}
         </button>
 
         {/* Leave world */}

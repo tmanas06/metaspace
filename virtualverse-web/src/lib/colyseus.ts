@@ -115,11 +115,36 @@ class ColyseusManager {
         error: null,
       });
 
-      // Tell Phaser which session ID belongs to local player
-      const scene = (await import("@/game/PhaserGame")).getMainScene();
-      if (scene) {
-        scene.setLocalSessionId(this.room.sessionId);
-      }
+      // Tell Phaser which session ID belongs to the local player.
+      // RACE CONDITION FIX: The Phaser MainScene loads asynchronously via ResizeObserver.
+      // Colyseus can connect BEFORE the scene calls registerStateApplier.
+      // We retry every 100ms for up to 3 seconds to guarantee the ID is set.
+      const sessionIdToSet = this.room.sessionId;
+      const trySetSessionId = async () => {
+        const { getMainScene } = await import("@/game/PhaserGame");
+        const scene = getMainScene();
+        if (scene) {
+          scene.setLocalSessionId(sessionIdToSet);
+          console.log("[Colyseus] Local session ID set on Phaser scene:", sessionIdToSet);
+        } else {
+          // Scene not ready yet — retry after 100ms (max 30 retries = 3s)
+          let retries = 0;
+          const interval = setInterval(async () => {
+            retries++;
+            const { getMainScene: getScene } = await import("@/game/PhaserGame");
+            const s = getScene();
+            if (s) {
+              s.setLocalSessionId(sessionIdToSet);
+              console.log("[Colyseus] Local session ID set on Phaser scene (retry", retries, "):", sessionIdToSet);
+              clearInterval(interval);
+            } else if (retries >= 30) {
+              console.warn("[Colyseus] Gave up waiting for Phaser scene after 3s");
+              clearInterval(interval);
+            }
+          }, 100);
+        }
+      };
+      trySetSessionId();
 
       // Forward keyboard input → server (boolean input messages)
       this.unsubscribeInput = gameBridge.onInput((input: BooleanInput) => {

@@ -40,6 +40,8 @@ class GameBridge {
   private proximityEndListeners: ProximityListener[] = [];
   private stateApplier: StateApplier | null = null;
   private mapDataListener: MapDataListener | null = null;
+  // Buffered so a late-registering Phaser scene gets the latest state on mount
+  private lastKnownState: PlayerState[] | null = null;
 
   // Called by Phaser when local player presses keys
   emitInput(input: BooleanInput) {
@@ -58,6 +60,7 @@ class GameBridge {
 
   // Called by Colyseus hook to push authoritative state into Phaser
   applyServerState(players: PlayerState[]) {
+    this.lastKnownState = players; // always buffer latest
     if (this.stateApplier) this.stateApplier(players);
   }
 
@@ -102,6 +105,11 @@ class GameBridge {
 
   registerStateApplier(fn: StateApplier) {
     this.stateApplier = fn;
+    // Replay the last known state immediately so the scene never misses
+    // the initial server snapshot if it registered late (Phaser loads async).
+    if (this.lastKnownState) {
+      fn(this.lastKnownState);
+    }
     return () => {
       this.stateApplier = null;
     };

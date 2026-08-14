@@ -53,7 +53,14 @@ export function VirtualWorld() {
     fetchRoomPresets().then((list) => {
       setPresets(list);
       if (list.length > 0) {
-        setSelectedMapData(list[0]);
+        // Pre-select map from ?map= URL param (from an invite link)
+        const urlMapId = typeof window !== "undefined"
+          ? new URLSearchParams(window.location.search).get("map")
+          : null;
+        const preSelected = urlMapId
+          ? list.find((p) => p.id === urlMapId || p.name === urlMapId)
+          : null;
+        setSelectedMapData(preSelected ?? list[0]);
       }
     });
   }, []);
@@ -130,6 +137,13 @@ export function VirtualWorld() {
           onOpenControls={() => setIsControlsOpen(true)}
           onOpenPermissions={() => setIsPermissionsOpen(true)}
           onLeave={handleLeave}
+          onInvite={() => {
+            // Build invite URL with current map encoded as a ?map= query param
+            // so the invited user lands on the same map automatically.
+            const base = window.location.origin + window.location.pathname;
+            const mapId = selectedMapData.id || selectedMapData.name;
+            return `${base}?map=${encodeURIComponent(mapId)}`;
+          }}
         />
       </div>
 
