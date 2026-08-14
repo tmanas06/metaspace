@@ -233,7 +233,10 @@ class LiveKitManager {
       }
 
       console.log(`[LiveKit] Connecting to room with URL: ${finalLivekitUrl}`);
-      this.room = new Room();
+      this.room = new Room({
+        adaptiveStream: true,
+        dynacast: true,
+      });
 
       this.room.on(RoomEvent.TrackSubscribed, this.handleTrackSubscribed.bind(this));
       this.room.on(RoomEvent.TrackUnsubscribed, this.handleTrackUnsubscribed.bind(this));
@@ -243,7 +246,18 @@ class LiveKitManager {
         this.cleanup();
       });
 
-      await this.room.connect(finalLivekitUrl, token);
+      await this.room.connect(finalLivekitUrl, token, {
+        autoSubscribe: true,
+        rtcConfig: {
+          iceTransportPolicy: "all",
+          iceServers: [
+            { urls: "stun:stun.l.google.com:19302" },
+            { urls: "stun:stun1.l.google.com:19302" },
+            { urls: "stun:stun2.l.google.com:19302" },
+            { urls: "stun:global.stun.twilio.com:3478" },
+          ],
+        },
+      });
 
       // CRITICAL FIX: Check tracks of participants ALREADY in the room before we joined
       this.room.remoteParticipants.forEach((participant) => {
