@@ -246,30 +246,7 @@ class LiveKitManager {
         this.cleanup();
       });
 
-      await this.room.connect(finalLivekitUrl, token, {
-        autoSubscribe: true,
-        rtcConfig: {
-          iceTransportPolicy: "all",
-          iceServers: [
-            // Public STUN servers
-            { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:stun1.l.google.com:19302" },
-            { urls: "stun:stun2.l.google.com:19302" },
-            { urls: "stun:global.stun.twilio.com:3478" },
-            // OpenRelay Free TURN Servers (relays WebRTC over TCP/TLS port 443 across any router/NAT)
-            {
-              urls: [
-                "turn:openrelay.metered.ca:80",
-                "turn:openrelay.metered.ca:443",
-                "turn:openrelay.metered.ca:443?transport=tcp",
-                "turns:openrelay.metered.ca:443?transport=tcp",
-              ],
-              username: "openrelayproject",
-              credential: "openrelayproject",
-            },
-          ],
-        },
-      });
+      await this.room.connect(finalLivekitUrl, token);
 
       // CRITICAL FIX: Check tracks of participants ALREADY in the room before we joined
       this.room.remoteParticipants.forEach((participant) => {
