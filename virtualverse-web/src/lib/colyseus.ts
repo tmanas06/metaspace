@@ -41,10 +41,18 @@ class ColyseusManager {
 
   private playersState: PlayerEntry[] = [];
 
-  // Debounce timer for sidebar updates — avoids a React re-render on every packet
+  // Debounce timer for sidebar updates
   private sidebarDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   private pendingSidebarPlayers: PlayerEntry[] = [];
   private readonly SIDEBAR_DEBOUNCE_MS = 500;
+
+  // Auto-reconnect state
+  private lastConnectUsername: string | null = null;
+  private lastConnectMapPreset: string = "Event Hall & Main Stage";
+  private intentionalDisconnect = false;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconnectAttempts = 0;
+  private readonly MAX_RECONNECT_DELAY_MS = 30000;
 
   private state: ColyseusState = {
     status: "disconnected",
@@ -102,6 +110,12 @@ class ColyseusManager {
       this.setState({ status: "error", error: "NEXT_PUBLIC_WS_URL not configured" });
       return;
     }
+
+    // Remember params for auto-reconnect
+    this.lastConnectUsername = username;
+    this.lastConnectMapPreset = mapPreset;
+    this.intentionalDisconnect = false;
+    this.cancelReconnect();
 
     this.setState({ status: "connecting", error: null });
 
@@ -198,6 +212,11 @@ class ColyseusManager {
         console.warn(`[Colyseus] Left room with code ${code}`);
         this.setState({ status: "disconnected", sessionId: null });
         this.cleanup();
+        // Auto-reconnect unless the user explicitly left (code 4000 = client called leave())
+        // or an intentional disconnect was triggered.
+        if (!this.intentionalDisconnect && code !== 4000 && this.lastConnectUsername) {
+          this.scheduleReconnect();
+        }
       });
 
       this.room.onError((code, message) => {
@@ -283,9 +302,32 @@ class ColyseusManager {
   }
 
   async disconnect() {
+    this.intentionalDisconnect = true;
+    this.cancelReconnect();
     await this.room?.leave();
     this.cleanup();
     this.setState({ status: "disconnected", sessionId: null, error: null });
+  }
+
+  private scheduleReconnect() {
+    // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s (capped)
+    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), this.MAX_RECONNECT_DELAY_MS);
+    this.reconnectAttempts++;
+    console.log(`[Colyseus] Reconnecting in ${delay / 1000}s (attempt ${this.reconnectAttempts})...`);
+    this.setState({ status: "connecting", error: `Reconnecting... (attempt ${this.reconnectAttempts})` });
+    this.reconnectTimer = setTimeout(async () => {
+      if (!this.intentionalDisconnect && this.lastConnectUsername) {
+        await this.connect(this.lastConnectUsername, this.lastConnectMapPreset);
+      }
+    }, delay);
+  }
+
+  private cancelReconnect() {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    this.reconnectAttempts = 0;
   }
 
   private cleanup() {
