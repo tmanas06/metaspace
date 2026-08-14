@@ -172,6 +172,7 @@ export function VirtualWorld() {
         >
           <div style={{ pointerEvents: "auto", width: "100%", height: "100%", position: "relative" }}>
             <VideoOverlay
+              livekitState={livekit}
               remoteVideoElements={livekit.remoteVideoElements}
               username={username}
               onOpenMapSelector={() => setIsMapModalOpen(true)}

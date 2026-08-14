@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { gameBridge, BooleanInput, PlayerState } from "../GameBridge";
 import { MapPresetData, FALLBACK_MAP_PRESETS } from "@/lib/api";
 
-const PROXIMITY_RADIUS = 100;
+const PROXIMITY_RADIUS = 220;
 
 interface RemoteAvatar {
   sessionId: string;

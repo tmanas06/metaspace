@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { LiveKitState } from "@/lib/livekit";
 
 interface VideoOverlayProps {
+  livekitState?: LiveKitState;
   remoteVideoElements: Map<string, HTMLVideoElement>;
   username: string;
   onOpenMapSelector: () => void;
@@ -15,10 +17,11 @@ interface VideoOverlayProps {
 /**
  * VideoOverlay — GatherOffice-style UI overlay.
  *
- * • Video tiles float in the TOP-RIGHT corner of the canvas.
- * • Bottom centre bar: [Avatar | Name | Online] | [Map] [Screen] [Emoji] [Chat] | [Mic] [Cam]
+ * • Proximity status & Video tiles float in TOP-RIGHT corner.
+ * • Bottom centre bar: [Avatar | Name | Online] | [Map] [Screen] [Permissions] [Chat] | [Mic] [Cam]
  */
 export function VideoOverlay({
+  livekitState,
   remoteVideoElements,
   username,
   onOpenMapSelector,
@@ -48,11 +51,11 @@ export function VideoOverlay({
     });
   };
 
-  // Toggle local camera preview
+  // Local camera self-preview stream
   useEffect(() => {
     if (isCamOn) {
       navigator.mediaDevices
-        ?.getUserMedia({ video: true, audio: isMicOn })
+        ?.getUserMedia({ video: true, audio: false })
         .then((stream) => {
           streamRef.current = stream;
           if (localVideoRef.current) {
@@ -75,38 +78,74 @@ export function VideoOverlay({
         streamRef.current.getTracks().forEach((t) => t.stop());
       }
     };
-  }, [isCamOn, isMicOn]);
+  }, [isCamOn]);
 
-  const hasRemote = remoteVideoElements.size > 0;
+  const isProximityActive =
+    livekitState?.status === "connected" || livekitState?.status === "connecting";
+  const hasRemoteVideo = remoteVideoElements.size > 0;
+  const targetPeerId = livekitState?.activeTargetId;
 
   return (
     <>
-      {/* ── Top-right floating video strip ── */}
-      {(hasRemote || isCamOn) && (
+      {/* ── Top-right Proximity status & video tiles ── */}
+      {(isProximityActive || isCamOn || hasRemoteVideo) && (
         <div
           style={{
             position: "absolute",
-            top: 12,
-            right: 12,
+            top: 14,
+            right: 14,
             display: "flex",
             flexDirection: "column",
-            gap: 8,
-            zIndex: 25,
+            alignItems: "flex-end",
+            gap: 10,
+            zIndex: 35,
             pointerEvents: "auto",
           }}
         >
-          {/* Local Camera Self Preview */}
+          {/* Connection Status Badge */}
+          {isProximityActive && (
+            <div
+              style={{
+                background: "rgba(15, 23, 42, 0.92)",
+                border: "1px solid rgba(99, 102, 241, 0.4)",
+                backdropFilter: "blur(12px)",
+                borderRadius: 20,
+                padding: "6px 14px",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+              }}
+            >
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: livekitState?.status === "connected" ? "#10b981" : "#f59e0b",
+                  boxShadow: livekitState?.status === "connected" ? "0 0 8px #10b981" : "none",
+                }}
+              />
+              <span style={{ color: "#fff", fontSize: 12, fontWeight: 600 }}>
+                {livekitState?.status === "connected"
+                  ? "Proximity Voice & Video"
+                  : "Connecting Proximity Call..."}
+              </span>
+            </div>
+          )}
+
+          {/* Local Camera Preview Tile */}
           {isCamOn && (
             <div
               style={{
                 position: "relative",
                 width: 176,
                 height: 128,
-                borderRadius: 12,
+                borderRadius: 14,
                 overflow: "hidden",
                 border: "1.5px solid rgba(99,102,241,0.6)",
-                boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
-                background: "#18181b",
+                boxShadow: "0 6px 24px rgba(0,0,0,0.5)",
+                background: "#0f172a",
               }}
             >
               <video
@@ -121,21 +160,20 @@ export function VideoOverlay({
                   transform: "scaleX(-1)",
                 }}
               />
-              {/* Name label */}
               <div
                 style={{
                   position: "absolute",
                   bottom: 6,
                   left: 6,
                   right: 6,
-                  background: "rgba(0,0,0,0.65)",
+                  background: "rgba(15,23,42,0.85)",
                   backdropFilter: "blur(6px)",
                   borderRadius: 6,
-                  padding: "2px 8px",
+                  padding: "3px 8px",
                   display: "flex",
                   alignItems: "center",
-                  gap: 5,
-                  border: "1px solid rgba(255,255,255,0.08)",
+                  gap: 6,
+                  border: "1px solid rgba(255,255,255,0.1)",
                 }}
               >
                 <span
@@ -143,7 +181,7 @@ export function VideoOverlay({
                     width: 6,
                     height: 6,
                     borderRadius: "50%",
-                    background: "#34d399",
+                    background: "#10b981",
                     flexShrink: 0,
                   }}
                 />
@@ -151,7 +189,7 @@ export function VideoOverlay({
                   style={{
                     color: "#fff",
                     fontSize: 11,
-                    fontWeight: 500,
+                    fontWeight: 600,
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
@@ -160,27 +198,6 @@ export function VideoOverlay({
                   {username} (You)
                 </span>
               </div>
-              {/* Expand icon */}
-              <button
-                style={{
-                  position: "absolute",
-                  top: 6,
-                  right: 6,
-                  background: "rgba(0,0,0,0.5)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  borderRadius: 5,
-                  color: "rgba(255,255,255,0.7)",
-                  padding: 3,
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                }}
-                title="Expand"
-              >
-                <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                </svg>
-              </button>
             </div>
           )}
 
@@ -188,6 +205,67 @@ export function VideoOverlay({
           {Array.from(remoteVideoElements.entries()).map(([identity, videoEl]) => (
             <RemoteVideoTile key={identity} identity={identity} videoEl={videoEl} />
           ))}
+
+          {/* Fallback Audio Tile if connected to peer but peer camera is OFF */}
+          {livekitState?.status === "connected" && !hasRemoteVideo && targetPeerId && (
+            <div
+              style={{
+                position: "relative",
+                width: 176,
+                height: 110,
+                borderRadius: 14,
+                background: "linear-gradient(135deg, #1e1b4b, #312e81)",
+                border: "1.5px solid rgba(129, 140, 248, 0.4)",
+                boxShadow: "0 6px 24px rgba(0,0,0,0.5)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+              }}
+            >
+              {/* Avatar circle */}
+              <div
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, #6366f1, #a855f7)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#fff",
+                  fontWeight: 700,
+                  fontSize: 16,
+                  boxShadow: "0 4px 12px rgba(99,102,241,0.4)",
+                }}
+              >
+                {(targetPeerId || "P").slice(0, 2).toUpperCase()}
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  background: "rgba(0,0,0,0.4)",
+                  padding: "2px 10px",
+                  borderRadius: 12,
+                }}
+              >
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "#10b981",
+                  }}
+                />
+                <span style={{ color: "#e0e7ff", fontSize: 11, fontWeight: 600 }}>
+                  Audio Active
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -212,7 +290,7 @@ export function VideoOverlay({
           boxShadow: "0 8px 32px rgba(0,0,0,0.45)",
         }}
       >
-        {/* ── User info section ── */}
+        {/* User info section */}
         <div
           style={{
             display: "flex",
@@ -222,7 +300,6 @@ export function VideoOverlay({
             borderRight: "1px solid rgba(255,255,255,0.08)",
           }}
         >
-          {/* Avatar circle */}
           <div
             style={{
               width: 32,
@@ -241,7 +318,6 @@ export function VideoOverlay({
           >
             {(username || "U").slice(0, 2).toUpperCase()}
           </div>
-          {/* Name + status */}
           <div style={{ display: "flex", flexDirection: "column" }}>
             <span
               style={{
@@ -279,7 +355,7 @@ export function VideoOverlay({
           </div>
         </div>
 
-        {/* ── Action icons: Map, Screen, Emoji ── */}
+        {/* Action icons: Map, Screen, Emoji */}
         <div
           style={{
             display: "flex",
@@ -293,7 +369,6 @@ export function VideoOverlay({
             label="Map Gallery"
             onClick={onOpenMapSelector}
             icon={
-              // Map icon
               <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
               </svg>
@@ -303,7 +378,6 @@ export function VideoOverlay({
             label="Screen / Controls"
             onClick={onOpenControls}
             icon={
-              // Monitor icon
               <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
@@ -313,7 +387,6 @@ export function VideoOverlay({
             label="Permissions"
             onClick={onOpenPermissions}
             icon={
-              // Emoji / smiley icon
               <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -332,9 +405,8 @@ export function VideoOverlay({
           )}
         </div>
 
-        {/* ── Mic / Cam controls ── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 4, paddingLeft: 8 }}>
-          {/* Mic toggle */}
+        {/* Mic / Cam controls */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, paddingLeft: 8 }}>
           <MediaBtn
             active={isMicOn}
             onClick={handleToggleMic}
@@ -355,7 +427,6 @@ export function VideoOverlay({
             }
           />
 
-          {/* Cam toggle */}
           <MediaBtn
             active={isCamOn}
             onClick={handleToggleCam}
@@ -414,11 +485,11 @@ function RemoteVideoTile({
         position: "relative",
         width: 176,
         height: 128,
-        borderRadius: 12,
+        borderRadius: 14,
         overflow: "hidden",
-        border: "1.5px solid rgba(255,255,255,0.15)",
-        boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
-        background: "#18181b",
+        border: "1.5px solid rgba(255,255,255,0.2)",
+        boxShadow: "0 6px 24px rgba(0,0,0,0.5)",
+        background: "#0f172a",
       }}
     >
       <div id={`remote-tile-${identity}`} style={{ width: "100%", height: "100%" }} />
@@ -428,14 +499,14 @@ function RemoteVideoTile({
           bottom: 6,
           left: 6,
           right: 6,
-          background: "rgba(0,0,0,0.65)",
+          background: "rgba(15,23,42,0.85)",
           backdropFilter: "blur(6px)",
           borderRadius: 6,
-          padding: "2px 8px",
+          padding: "3px 8px",
           display: "flex",
           alignItems: "center",
-          gap: 5,
-          border: "1px solid rgba(255,255,255,0.08)",
+          gap: 6,
+          border: "1px solid rgba(255,255,255,0.1)",
         }}
       >
         <span
@@ -443,7 +514,7 @@ function RemoteVideoTile({
             width: 6,
             height: 6,
             borderRadius: "50%",
-            background: "#34d399",
+            background: "#10b981",
             flexShrink: 0,
           }}
         />
@@ -451,7 +522,7 @@ function RemoteVideoTile({
           style={{
             color: "#fff",
             fontSize: 11,
-            fontWeight: 500,
+            fontWeight: 600,
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
@@ -464,7 +535,6 @@ function RemoteVideoTile({
   );
 }
 
-/** Small icon-only button for the bottom action row */
 function BarIconBtn({
   label,
   icon,
@@ -499,7 +569,6 @@ function BarIconBtn({
   );
 }
 
-/** Mic / Cam toggle button with active/inactive visual states */
 function MediaBtn({
   active,
   onClick,

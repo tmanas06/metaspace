@@ -55,7 +55,7 @@ class LiveKitManager {
   // Debounce timers
   private proximityStartTimer: ReturnType<typeof setTimeout> | null = null;
   private proximityEndTimer: ReturnType<typeof setTimeout> | null = null;
-  private readonly DEBOUNCE_MS = 800;
+  private readonly DEBOUNCE_MS = 150;
 
   // Unsubscribe functions from gameBridge
   private unsubStart: (() => void) | null = null;
@@ -245,6 +245,15 @@ class LiveKitManager {
 
       await this.room.connect(finalLivekitUrl, token);
 
+      // CRITICAL FIX: Check tracks of participants ALREADY in the room before we joined
+      this.room.remoteParticipants.forEach((participant) => {
+        participant.trackPublications.forEach((pub) => {
+          if (pub.isSubscribed && pub.track) {
+            this.handleTrackSubscribed(pub.track, pub, participant);
+          }
+        });
+      });
+
       // Create and publish local media tracks (with graceful audio/video fallback)
       try {
         this.localTracks = await createLocalTracks({
@@ -296,14 +305,25 @@ class LiveKitManager {
     if (!track) return;
     if (track.kind === Track.Kind.Video) {
       const videoEl = track.attach() as HTMLVideoElement;
+      videoEl.autoplay = true;
+      videoEl.playsInline = true;
       const newMap = new Map(this.state.remoteVideoElements);
       newMap.set(participant.identity, videoEl);
       this.setState({ remoteVideoElements: newMap });
     } else if (track.kind === Track.Kind.Audio) {
       // Audio needs to be attached to DOM to play
-      const audioEl = track.attach();
+      const audioEl = track.attach() as HTMLAudioElement;
       audioEl.id = `remote-audio-${participant.identity}`;
+      audioEl.autoplay = true;
       document.body.appendChild(audioEl);
+      audioEl.play().catch((err) => {
+        console.warn("[LiveKit] Audio play blocked by browser policy, unlocking on user click:", err);
+        const unlock = () => {
+          audioEl.play().catch(() => {});
+          window.removeEventListener("click", unlock);
+        };
+        window.addEventListener("click", unlock);
+      });
     }
   }
 
