@@ -9,6 +9,7 @@ export interface ChatMessage {
   text: string;
   timestamp: Date;
   local?: boolean;
+  sessionId?: string;
 }
 
 interface ChatPanelProps {
@@ -29,42 +30,53 @@ export function ChatPanel({ username, disabled, isOpen = true, onClose }: ChatPa
   ]);
   const [input, setInput] = useState("");
   const [collapsed, setCollapsed] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Subscribe to real-time chat messages from Colyseus server
+  // Subscribe to real-time chat messages from Colyseus server with strict deduplication
   useEffect(() => {
     const unsub = colyseusManager.onChatMessage((msg) => {
-      setMessages((prev) => [...prev, msg]);
+      setMessages((prev) => {
+        // Prevent duplicate messages by checking ID
+        if (prev.some((m) => m.id === msg.id)) {
+          return prev;
+        }
+        return [...prev, msg];
+      });
     });
     return unsub;
   }, []);
 
-  // Auto-scroll on new message
+  // Auto-scroll on new message or size change
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
     }
-  }, [messages, collapsed]);
+  }, [messages, collapsed, isExpanded]);
 
   const sendMessage = (e: FormEvent) => {
     e.preventDefault();
     if (!input.trim() || disabled) return;
 
     const text = input.trim();
-
-    const localMsg: ChatMessage = {
-      id: crypto.randomUUID(),
-      username: username || "You",
-      text,
-      timestamp: new Date(),
-      local: true,
-    };
-
-    setMessages((prev) => [...prev, localMsg]);
     setInput("");
 
-    // Broadcast to Colyseus room if connected
-    colyseusManager.sendChatMessage(text);
+    const isConnected = colyseusManager.getState().status === "connected";
+
+    if (isConnected) {
+      // Server will broadcast message to all clients in room (including sender)
+      colyseusManager.sendChatMessage(text, username);
+    } else {
+      // Fallback for offline / disconnected state
+      const localMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        username: username || "You",
+        text,
+        timestamp: new Date(),
+        local: true,
+      };
+      setMessages((prev) => [...prev, localMsg]);
+    }
   };
 
   if (!isOpen) return null;
@@ -115,11 +127,13 @@ export function ChatPanel({ username, disabled, isOpen = true, onClose }: ChatPa
     );
   }
 
+  const currentSessionId = colyseusManager.getState().sessionId;
+
   return (
     <div
       id="chat-panel"
       style={{
-        width: 300,
+        width: isExpanded ? 480 : 310,
         borderRadius: 16,
         background: "rgba(15, 23, 42, 0.95)",
         border: "1px solid rgba(255, 255, 255, 0.12)",
@@ -128,6 +142,7 @@ export function ChatPanel({ username, disabled, isOpen = true, onClose }: ChatPa
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
+        transition: "width 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
       }}
     >
       {/* Header */}
@@ -148,8 +163,51 @@ export function ChatPanel({ username, disabled, isOpen = true, onClose }: ChatPa
           <span style={{ color: "#fff", fontSize: 13, fontWeight: 700, letterSpacing: "-0.2px" }}>
             Room Chat
           </span>
+          {isExpanded && (
+            <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 11, fontWeight: 500 }}>
+              (Expanded View)
+            </span>
+          )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          {/* Expand / Restore Button */}
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            style={{
+              background: "rgba(255,255,255,0.06)",
+              border: "none",
+              color: "rgba(255,255,255,0.7)",
+              cursor: "pointer",
+              padding: 5,
+              borderRadius: 6,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "background 0.15s ease, color 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.12)";
+              (e.currentTarget as HTMLButtonElement).style.color = "#fff";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.06)";
+              (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.7)";
+            }}
+            title={isExpanded ? "Restore Chat Size" : "Expand Chat"}
+          >
+            {isExpanded ? (
+              /* Contract Icon */
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7" />
+              </svg>
+            ) : (
+              /* Expand Icon */
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+              </svg>
+            )}
+          </button>
+
           {/* Minimize button */}
           <button
             onClick={() => setCollapsed(true)}
@@ -158,10 +216,11 @@ export function ChatPanel({ username, disabled, isOpen = true, onClose }: ChatPa
               border: "none",
               color: "rgba(255,255,255,0.4)",
               cursor: "pointer",
-              padding: 4,
+              padding: 5,
               borderRadius: 6,
               display: "flex",
               alignItems: "center",
+              justifyContent: "center",
             }}
             title="Minimize Chat"
           >
@@ -169,6 +228,7 @@ export function ChatPanel({ username, disabled, isOpen = true, onClose }: ChatPa
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
             </svg>
           </button>
+
           {onClose && (
             <button
               onClick={onClose}
@@ -177,10 +237,11 @@ export function ChatPanel({ username, disabled, isOpen = true, onClose }: ChatPa
                 border: "none",
                 color: "rgba(255,255,255,0.4)",
                 cursor: "pointer",
-                padding: 4,
+                padding: 5,
                 borderRadius: 6,
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "center",
               }}
               title="Close Chat"
             >
@@ -196,17 +257,21 @@ export function ChatPanel({ username, disabled, isOpen = true, onClose }: ChatPa
       <div
         ref={scrollRef}
         style={{
-          height: 180,
+          height: isExpanded ? 380 : 180,
           overflowY: "auto",
           padding: "10px 12px",
           display: "flex",
           flexDirection: "column",
           gap: 8,
+          transition: "height 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
         {messages.map((m) => {
           const isSystem = m.username === "System";
-          const isMe = m.local || m.username === username;
+          const isMe =
+            m.local ||
+            (currentSessionId && m.sessionId === currentSessionId) ||
+            m.username === username;
 
           if (isSystem) {
             return (
@@ -251,7 +316,7 @@ export function ChatPanel({ username, disabled, isOpen = true, onClose }: ChatPa
               </span>
               <div
                 style={{
-                  maxWidth: "85%",
+                  maxWidth: isExpanded ? "80%" : "88%",
                   padding: "7px 11px",
                   borderRadius: isMe ? "12px 12px 2px 12px" : "12px 12px 12px 2px",
                   background: isMe ? "linear-gradient(135deg, #4f46e5, #6366f1)" : "rgba(255,255,255,0.08)",

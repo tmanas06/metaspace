@@ -171,24 +171,27 @@ class ColyseusManager {
       const handleChatMsg = (data: any) => {
         let senderName = "User";
         let textMsg = "";
+        let msgId = typeof data === "object" && data?.id ? data.id : crypto.randomUUID();
+        let senderSessionId = typeof data === "object" ? data?.sessionId : undefined;
+
         if (typeof data === "string") {
           textMsg = data;
         } else if (data && typeof data === "object") {
           senderName = data.username || data.name || data.sender || "User";
           textMsg = data.text || data.message || data.content || String(data);
         }
+
         const msg = {
-          id: crypto.randomUUID(),
+          id: msgId,
           username: senderName,
           text: textMsg,
-          timestamp: new Date(),
+          sessionId: senderSessionId,
+          timestamp: data?.timestamp ? new Date(data.timestamp) : new Date(),
         };
         this.chatCallbacks.forEach((fn) => fn(msg));
       };
 
       this.room.onMessage("chat", handleChatMsg);
-      this.room.onMessage("message", handleChatMsg);
-      this.room.onMessage("chat-message", handleChatMsg);
 
       // Listen for player changes via Colyseus Schema event listeners on room.state
       this.room.onStateChange((serverState) => {
