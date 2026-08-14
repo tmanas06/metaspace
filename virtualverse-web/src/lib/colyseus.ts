@@ -9,6 +9,10 @@
  *   - drift > 50px → snap
  *   - drift > 5px  → smooth lerp 30% per tick
  *   - drift < 5px  → trust local prediction
+ *
+ * Performance (40+ players):
+ *   - Sidebar player list updates are debounced 500ms — React re-renders stay rare.
+ *   - Phaser state updates bypass React entirely (gameBridge.applyServerState).
  */
 
 import * as Colyseus from "colyseus.js";
@@ -36,6 +40,11 @@ class ColyseusManager {
   private unsubscribeInput: (() => void) | null = null;
 
   private playersState: PlayerEntry[] = [];
+
+  // Debounce timer for sidebar updates — avoids a React re-render on every packet
+  private sidebarDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private pendingSidebarPlayers: PlayerEntry[] = [];
+  private readonly SIDEBAR_DEBOUNCE_MS = 500;
 
   private state: ColyseusState = {
     status: "disconnected",
@@ -83,8 +92,6 @@ class ColyseusManager {
     if (this.room && this.state.status === "connected") {
       const payload = { text, username: username || "User" };
       this.room.send("chat", payload);
-      this.room.send("message", payload);
-      this.room.send("chat-message", payload);
     }
   }
 
@@ -114,7 +121,7 @@ class ColyseusManager {
         scene.setLocalSessionId(this.room.sessionId);
       }
 
-      // Forward keyboard input → server
+      // Forward keyboard input → server (boolean input messages)
       this.unsubscribeInput = gameBridge.onInput((input: BooleanInput) => {
         if (this.room && this.state.status === "connected") {
           this.room.send("input", input);
@@ -149,13 +156,17 @@ class ColyseusManager {
         this.handleStateChange(serverState);
       });
 
-      // Proximity events from server
-      this.room.onMessage("proximity-start", (data: { targetId: string }) => {
-        gameBridge.emitProximityStart(data.targetId);
+      // BUG FIX: Proximity events — server sends { peerSessionId, sessionIdA, sessionIdB, distance }.
+      // Old code was reading data.targetId which was always undefined.
+      this.room.onMessage("proximity-start", (data: { peerSessionId?: string; targetId?: string }) => {
+        // Support both new (peerSessionId) and legacy (targetId) field names
+        const peerId = data.peerSessionId || data.targetId;
+        if (peerId) gameBridge.emitProximityStart(peerId);
       });
 
-      this.room.onMessage("proximity-end", (data: { targetId: string }) => {
-        gameBridge.emitProximityEnd(data.targetId);
+      this.room.onMessage("proximity-end", (data: { peerSessionId?: string; targetId?: string }) => {
+        const peerId = data.peerSessionId || data.targetId;
+        if (peerId) gameBridge.emitProximityEnd(peerId);
       });
 
       this.room.onLeave((code) => {
@@ -231,12 +242,19 @@ class ColyseusManager {
       Object.entries(rawPlayers).forEach(([key, p]) => processPlayer(p, key));
     }
 
-    // Always push player list to Phaser so MainScene updates position and cleans up disconnected players
+    // Always push player positions to Phaser immediately — bypasses React entirely
     gameBridge.applyServerState(playersForPhaser);
 
-    // Notify React UI subscribers (sidebar roster)
-    this.playersState = playerEntriesForSidebar;
-    this.playersCallbacks.forEach((fn) => fn(playerEntriesForSidebar));
+    // PERF FIX: Debounce sidebar React state updates — the player list doesn't need
+    // to re-render at 20Hz. Only update every 500ms to keep the React tree quiet.
+    this.pendingSidebarPlayers = playerEntriesForSidebar;
+    if (!this.sidebarDebounceTimer) {
+      this.sidebarDebounceTimer = setTimeout(() => {
+        this.playersState = this.pendingSidebarPlayers;
+        this.playersCallbacks.forEach((fn) => fn(this.pendingSidebarPlayers));
+        this.sidebarDebounceTimer = null;
+      }, this.SIDEBAR_DEBOUNCE_MS);
+    }
   }
 
   async disconnect() {
@@ -251,6 +269,10 @@ class ColyseusManager {
     this.room = null;
     this.client = null;
     this.playersState = [];
+    if (this.sidebarDebounceTimer) {
+      clearTimeout(this.sidebarDebounceTimer);
+      this.sidebarDebounceTimer = null;
+    }
     this.playersCallbacks.forEach((fn) => fn([]));
   }
 }

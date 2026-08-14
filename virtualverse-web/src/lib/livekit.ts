@@ -138,34 +138,58 @@ class LiveKitManager {
 
     this.setState({ status: "connecting", activeTargetId: targetId, error: null });
 
+    // Retrieve the local Colyseus sessionId so we can form a deterministic room name
+    const { colyseusManager } = await import("@/lib/colyseus");
+    const localSessionId = colyseusManager.getState().sessionId || "unknown";
+
     try {
-      // Fetch token from NestJS backend — try /livekit/token, fallback to /api/livekit/token
+      // BUG FIX: Use the new public /livekit/proximity-token endpoint (no JWT required).
+      // The old /livekit/token endpoint required @UseGuards(JwtAuthGuard) which returned 401
+      // for unauthenticated Colyseus guests. The new endpoint accepts sessionId pairs directly.
       let token = "";
+      const tokenPayload = {
+        sessionId: localSessionId,
+        peerSessionId: targetId,
+        // Legacy field — server accepts both names for backward compat
+        targetSessionId: targetId,
+      };
+
+      // Primary: new public endpoint
       try {
-        const res = await fetch(`${apiUrl}/livekit/token`, {
+        const res = await fetch(`${apiUrl}/livekit/proximity-token`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ targetSessionId: targetId, roomName: "MapRoom" }),
+          body: JSON.stringify(tokenPayload),
         });
         if (res.ok) {
           const data = await res.json();
           token = data.token;
         }
       } catch (err) {
-        console.warn("[LiveKit] Direct token fetch failed, trying alternative endpoint", err);
+        console.warn("[LiveKit] proximity-token fetch failed, trying legacy endpoint", err);
+      }
+
+      // Fallback: legacy endpoint (may still work if user is authenticated)
+      if (!token) {
+        try {
+          const res2 = await fetch(`${apiUrl}/livekit/token`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionId: localSessionId, peerSessionId: targetId }),
+          });
+          if (res2.ok) {
+            const data2 = await res2.json();
+            token = data2.token;
+          }
+        } catch (err) {
+          console.warn("[LiveKit] Legacy token fetch also failed", err);
+        }
       }
 
       if (!token) {
-        const res2 = await fetch(`${apiUrl}/api/livekit/token`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ targetSessionId: targetId, roomName: "MapRoom" }),
-        });
-        if (!res2.ok) {
-          throw new Error(`Token fetch failed (${res2.status}). Open 2 browser tabs & walk near each other for proximity video.`);
-        }
-        const data2 = await res2.json();
-        token = data2.token;
+        throw new Error(
+          `Token fetch failed. Check that NEXT_PUBLIC_API_URL is set and the backend is running.`
+        );
       }
 
       // Connect to LiveKit room

@@ -31,6 +31,10 @@ export class MainScene extends Phaser.Scene {
   private remoteAvatars: Map<string, RemoteAvatar> = new Map();
   private proximityActive: Set<string> = new Set();
 
+  // Frame counter for throttling proximity check (runs every N frames)
+  private frameCounter = 0;
+  private readonly PROXIMITY_CHECK_INTERVAL = 10; // check every 10 frames (~6Hz at 60fps)
+
   private lastInput: BooleanInput = {
     left: false,
     right: false,
@@ -340,10 +344,19 @@ export class MainScene extends Phaser.Scene {
       this.lastInput = { ...newInput };
     }
 
-    this.checkProximity();
+    this.frameCounter++;
 
-    // Interpolate remote avatars smoothly
+    // PERF FIX: Only run client-side proximity every 10 frames (~6Hz) not every frame (60Hz)
+    if (this.frameCounter % this.PROXIMITY_CHECK_INTERVAL === 0) {
+      this.checkProximity();
+    }
+
+    // Interpolate remote avatars smoothly toward server positions
     this.remoteAvatars.forEach((avatar) => {
+      // PERF FIX: Skip interpolation when already within 0.5px — avoids unnecessary set calls
+      const distX = Math.abs(avatar.container.x - avatar.serverX);
+      const distY = Math.abs(avatar.container.y - avatar.serverY);
+      if (distX < 0.5 && distY < 0.5) return;
       avatar.container.x = Phaser.Math.Linear(avatar.container.x, avatar.serverX, 0.15);
       avatar.container.y = Phaser.Math.Linear(avatar.container.y, avatar.serverY, 0.15);
     });
