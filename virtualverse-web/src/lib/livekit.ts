@@ -5,12 +5,10 @@
  *   1. Colyseus detects proximity (via server or Phaser detection)
  *   2. gameBridge emits "proximityStart" with targetSessionId
  *   3. This module debounces the event (800ms) to avoid spam
- *   4. On confirmed start: POST to ${NEXT_PUBLIC_API_URL}/livekit/token
- *   5. Connect to LiveKit room at NEXT_PUBLIC_LIVEKIT_URL
+ *   4. On confirmed start: POST to ${NEXT_PUBLIC_API_URL}/livekit/proximity-token
+ *   5. Connect to LiveKit room
  *   6. Publish local cam/mic, subscribe to remote tracks
  *   7. On proximity-end: disconnect and clean up all tracks
- *
- * URL always comes from NEXT_PUBLIC_API_URL and NEXT_PUBLIC_LIVEKIT_URL — never hardcoded.
  */
 
 import {
@@ -20,6 +18,7 @@ import {
   RemoteParticipant,
   RemoteTrackPublication,
   createLocalTracks,
+  LocalTrack,
 } from "livekit-client";
 
 import { gameBridge } from "@/game/GameBridge";
@@ -31,6 +30,8 @@ export interface LiveKitState {
   activeTargetId: string | null;
   error: string | null;
   remoteVideoElements: Map<string, HTMLVideoElement>;
+  micEnabled: boolean;
+  camEnabled: boolean;
 }
 
 type StatusCallback = (state: LiveKitState) => void;
@@ -39,7 +40,7 @@ type StatusCallback = (state: LiveKitState) => void;
 
 class LiveKitManager {
   private room: Room | null = null;
-  private localTracks: Awaited<ReturnType<typeof createLocalTracks>> = [];
+  private localTracks: LocalTrack[] = [];
   private statusCallbacks: StatusCallback[] = [];
 
   private state: LiveKitState = {
@@ -47,6 +48,8 @@ class LiveKitManager {
     activeTargetId: null,
     error: null,
     remoteVideoElements: new Map(),
+    micEnabled: true,
+    camEnabled: true,
   };
 
   // Debounce timers
@@ -77,7 +80,9 @@ class LiveKitManager {
 
   /** Call once to start listening for proximity events from the bridge */
   startListening() {
+    console.log("[LiveKit] Starting proximity event listener...");
     this.unsubStart = gameBridge.onProximityStart((targetId) => {
+      console.log("[LiveKit] Proximity start received for target:", targetId);
       // Cancel any pending disconnect
       if (this.proximityEndTimer) {
         clearTimeout(this.proximityEndTimer);
@@ -92,6 +97,7 @@ class LiveKitManager {
     });
 
     this.unsubEnd = gameBridge.onProximityEnd((_targetId) => {
+      console.log("[LiveKit] Proximity end received");
       // Cancel any pending connect
       if (this.proximityStartTimer) {
         clearTimeout(this.proximityStartTimer);
@@ -107,10 +113,33 @@ class LiveKitManager {
   }
 
   stopListening() {
+    console.log("[LiveKit] Stopping proximity event listener...");
     this.unsubStart?.();
     this.unsubEnd?.();
     this.unsubStart = null;
     this.unsubEnd = null;
+  }
+
+  async setMicrophoneEnabled(enabled: boolean) {
+    this.setState({ micEnabled: enabled });
+    if (this.room && this.state.status === "connected") {
+      try {
+        await this.room.localParticipant.setMicrophoneEnabled(enabled);
+      } catch (err) {
+        console.warn("[LiveKit] Failed to toggle microphone:", err);
+      }
+    }
+  }
+
+  async setCameraEnabled(enabled: boolean) {
+    this.setState({ camEnabled: enabled });
+    if (this.room && this.state.status === "connected") {
+      try {
+        await this.room.localParticipant.setCameraEnabled(enabled);
+      } catch (err) {
+        console.warn("[LiveKit] Failed to toggle camera:", err);
+      }
+    }
   }
 
   private async connectToProximityRoom(targetId: string) {
@@ -128,33 +157,30 @@ class LiveKitManager {
     }
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    const livekitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL;
+    const defaultLivekitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL;
 
-    if (!apiUrl || !livekitUrl) {
-      console.error("[LiveKit] NEXT_PUBLIC_API_URL or NEXT_PUBLIC_LIVEKIT_URL not set");
-      this.setState({ status: "error", error: "LiveKit env vars not configured" });
+    if (!apiUrl) {
+      console.error("[LiveKit] NEXT_PUBLIC_API_URL not set");
+      this.setState({ status: "error", error: "LiveKit API URL not configured" });
       return;
     }
 
     this.setState({ status: "connecting", activeTargetId: targetId, error: null });
 
-    // Retrieve the local Colyseus sessionId so we can form a deterministic room name
+    // Retrieve local Colyseus sessionId
     const { colyseusManager } = await import("@/lib/colyseus");
     const localSessionId = colyseusManager.getState().sessionId || "unknown";
 
     try {
-      // BUG FIX: Use the new public /livekit/proximity-token endpoint (no JWT required).
-      // The old /livekit/token endpoint required @UseGuards(JwtAuthGuard) which returned 401
-      // for unauthenticated Colyseus guests. The new endpoint accepts sessionId pairs directly.
       let token = "";
+      let serverReturnedLivekitUrl = "";
+
       const tokenPayload = {
         sessionId: localSessionId,
         peerSessionId: targetId,
-        // Legacy field — server accepts both names for backward compat
         targetSessionId: targetId,
       };
 
-      // Primary: new public endpoint
       try {
         const res = await fetch(`${apiUrl}/livekit/proximity-token`, {
           method: "POST",
@@ -164,12 +190,13 @@ class LiveKitManager {
         if (res.ok) {
           const data = await res.json();
           token = data.token;
+          serverReturnedLivekitUrl = data.livekitUrl;
         }
       } catch (err) {
         console.warn("[LiveKit] proximity-token fetch failed, trying legacy endpoint", err);
       }
 
-      // Fallback: legacy endpoint (may still work if user is authenticated)
+      // Fallback: legacy endpoint
       if (!token) {
         try {
           const res2 = await fetch(`${apiUrl}/livekit/token`, {
@@ -180,6 +207,7 @@ class LiveKitManager {
           if (res2.ok) {
             const data2 = await res2.json();
             token = data2.token;
+            serverReturnedLivekitUrl = data2.livekitUrl;
           }
         } catch (err) {
           console.warn("[LiveKit] Legacy token fetch also failed", err);
@@ -188,30 +216,58 @@ class LiveKitManager {
 
       if (!token) {
         throw new Error(
-          `Token fetch failed. Check that NEXT_PUBLIC_API_URL is set and the backend is running.`
+          `Token fetch failed. Ensure NEXT_PUBLIC_API_URL is set and backend is running.`
         );
       }
 
-      // Connect to LiveKit room
+      // Resolve final LiveKit URL: prioritize server return if valid public URL, else defaultLivekitUrl
+      let finalLivekitUrl = defaultLivekitUrl;
+      if (serverReturnedLivekitUrl && !serverReturnedLivekitUrl.includes("livekit:7880")) {
+        finalLivekitUrl = serverReturnedLivekitUrl;
+      }
+
+      if (!finalLivekitUrl) {
+        console.warn("[LiveKit] No NEXT_PUBLIC_LIVEKIT_URL set, falling back to window location origin");
+        const isSecure = window.location.protocol === "https:";
+        finalLivekitUrl = `${isSecure ? "wss" : "ws"}://${window.location.host}`;
+      }
+
+      console.log(`[LiveKit] Connecting to room with URL: ${finalLivekitUrl}`);
       this.room = new Room();
 
       this.room.on(RoomEvent.TrackSubscribed, this.handleTrackSubscribed.bind(this));
       this.room.on(RoomEvent.TrackUnsubscribed, this.handleTrackUnsubscribed.bind(this));
       this.room.on(RoomEvent.Disconnected, () => {
+        console.log("[LiveKit] Disconnected from room");
         this.setState({ status: "idle", activeTargetId: null });
         this.cleanup();
       });
 
-      await this.room.connect(livekitUrl, token);
+      await this.room.connect(finalLivekitUrl, token);
 
-      // Publish local camera and microphone
-      this.localTracks = await createLocalTracks({ audio: true, video: true });
-      await Promise.all(
-        this.localTracks.map((t) => this.room!.localParticipant.publishTrack(t))
-      );
+      // Create and publish local media tracks (with graceful audio/video fallback)
+      try {
+        this.localTracks = await createLocalTracks({
+          audio: this.state.micEnabled,
+          video: this.state.camEnabled,
+        });
+      } catch (mediaErr) {
+        console.warn("[LiveKit] Failed audio+video track creation, falling back to audio only:", mediaErr);
+        try {
+          this.localTracks = await createLocalTracks({ audio: true, video: false });
+        } catch (audioErr) {
+          console.warn("[LiveKit] Audio track creation also failed:", audioErr);
+        }
+      }
+
+      if (this.localTracks.length > 0) {
+        await Promise.all(
+          this.localTracks.map((t) => this.room!.localParticipant.publishTrack(t))
+        );
+      }
 
       this.setState({ status: "connected" });
-      console.log(`[LiveKit] Connected to proximity room with ${targetId}`);
+      console.log(`[LiveKit] Successfully connected to proximity room with ${targetId}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error("[LiveKit] Connection error:", msg);
@@ -244,16 +300,21 @@ class LiveKitManager {
       newMap.set(participant.identity, videoEl);
       this.setState({ remoteVideoElements: newMap });
     } else if (track.kind === Track.Kind.Audio) {
-      // Audio just needs to be attached to trigger playback
-      track.attach();
+      // Audio needs to be attached to DOM to play
+      const audioEl = track.attach();
+      audioEl.id = `remote-audio-${participant.identity}`;
+      document.body.appendChild(audioEl);
     }
   }
 
   private handleTrackUnsubscribed(
-    _track: RemoteTrackPublication["track"],
+    track: RemoteTrackPublication["track"],
     _pub: RemoteTrackPublication,
     participant: RemoteParticipant
   ) {
+    if (track) {
+      track.detach().forEach((el) => el.remove());
+    }
     const newMap = new Map(this.state.remoteVideoElements);
     newMap.delete(participant.identity);
     this.setState({ remoteVideoElements: newMap });

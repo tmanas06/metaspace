@@ -32,6 +32,22 @@ export function VideoOverlay({
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
+  const handleToggleMic = () => {
+    const next = !isMicOn;
+    setIsMicOn(next);
+    import("@/lib/livekit").then(({ liveKitManager }) => {
+      liveKitManager.setMicrophoneEnabled(next);
+    });
+  };
+
+  const handleToggleCam = () => {
+    const next = !isCamOn;
+    setIsCamOn(next);
+    import("@/lib/livekit").then(({ liveKitManager }) => {
+      liveKitManager.setCameraEnabled(next);
+    });
+  };
+
   // Toggle local camera preview
   useEffect(() => {
     if (isCamOn) {
@@ -321,7 +337,7 @@ export function VideoOverlay({
           {/* Mic toggle */}
           <MediaBtn
             active={isMicOn}
-            onClick={() => setIsMicOn(!isMicOn)}
+            onClick={handleToggleMic}
             title={isMicOn ? "Mute Microphone" : "Unmute Microphone"}
             activeColor="rgba(255,255,255,0.07)"
             inactiveColor="rgba(239,68,68,0.18)"
@@ -342,7 +358,7 @@ export function VideoOverlay({
           {/* Cam toggle */}
           <MediaBtn
             active={isCamOn}
-            onClick={() => setIsCamOn(!isCamOn)}
+            onClick={handleToggleCam}
             title={isCamOn ? "Turn Off Camera" : "Turn On Camera"}
             activeColor="rgba(99,102,241,0.25)"
             activeBorder="rgba(99,102,241,0.6)"
