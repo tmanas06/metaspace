@@ -15,10 +15,11 @@ interface VideoOverlayProps {
 }
 
 /**
- * VideoOverlay — GatherOffice-style UI overlay.
+ * VideoOverlay — Premium Gather.town-style UI overlay.
  *
- * • Proximity status & Video tiles float in TOP-RIGHT corner.
- * • Bottom centre bar: [Avatar | Name | Online] | [Map] [Screen] [Permissions] [Chat] | [Mic] [Cam]
+ * • Top Horizontal Video Strip: Active proximity peers shown in a clean row along the top.
+ * • Bottom-Right Mini Box: Local avatar / self-video preview.
+ * • Bottom Center Floating Bar: Pill control bar for user profile, actions, mic/cam.
  */
 export function VideoOverlay({
   livekitState,
@@ -32,6 +33,7 @@ export function VideoOverlay({
 }: VideoOverlayProps) {
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCamOn, setIsCamOn] = useState(false);
+  const [isVideoBarCollapsed, setIsVideoBarCollapsed] = useState(false);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -87,187 +89,250 @@ export function VideoOverlay({
 
   return (
     <>
-      {/* ── Top-right Proximity status & video tiles ── */}
-      {(isProximityActive || isCamOn || hasRemoteVideo) && (
+      {/* ── Top Horizontal Video Strip (Gather.town style) ── */}
+      {isProximityActive && !isVideoBarCollapsed && (
         <div
           style={{
             position: "absolute",
-            top: 14,
-            right: 14,
+            top: 12,
+            left: "50%",
+            transform: "translateX(-50%)",
             display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-end",
-            gap: 10,
+            alignItems: "center",
+            gap: 12,
             zIndex: 35,
             pointerEvents: "auto",
+            maxWidth: "92vw",
+            overflowX: "auto",
+            padding: "4px 8px",
           }}
         >
-          {/* Connection Status Badge */}
-          {isProximityActive && (
-            <div
+          {/* Status Badge */}
+          <div
+            style={{
+              background: "rgba(15, 23, 42, 0.92)",
+              border: "1px solid rgba(99, 102, 241, 0.4)",
+              backdropFilter: "blur(12px)",
+              borderRadius: 14,
+              padding: "8px 14px",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+              flexShrink: 0,
+            }}
+          >
+            <span
               style={{
-                background: "rgba(15, 23, 42, 0.92)",
-                border: "1px solid rgba(99, 102, 241, 0.4)",
-                backdropFilter: "blur(12px)",
-                borderRadius: 20,
-                padding: "6px 14px",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: livekitState?.status === "connected" ? "#10b981" : "#f59e0b",
+                boxShadow: livekitState?.status === "connected" ? "0 0 10px #10b981" : "none",
               }}
-            >
-              <span
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  background: livekitState?.status === "connected" ? "#10b981" : "#f59e0b",
-                  boxShadow: livekitState?.status === "connected" ? "0 0 8px #10b981" : "none",
-                }}
-              />
-              <span style={{ color: "#fff", fontSize: 12, fontWeight: 600 }}>
-                {livekitState?.status === "connected"
-                  ? "Proximity Voice & Video"
-                  : "Connecting Proximity Call..."}
-              </span>
-            </div>
-          )}
+            />
+            <span style={{ color: "#fff", fontSize: 12, fontWeight: 700, letterSpacing: "-0.2px" }}>
+              {livekitState?.status === "connected" ? "Proximity Call" : "Connecting..."}
+            </span>
+          </div>
 
-          {/* Local Camera Preview Tile */}
-          {isCamOn && (
-            <div
-              style={{
-                position: "relative",
-                width: 176,
-                height: 128,
-                borderRadius: 14,
-                overflow: "hidden",
-                border: "1.5px solid rgba(99,102,241,0.6)",
-                boxShadow: "0 6px 24px rgba(0,0,0,0.5)",
-                background: "#0f172a",
-              }}
-            >
-              <video
-                ref={localVideoRef}
-                autoPlay
-                playsInline
-                muted
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  transform: "scaleX(-1)",
-                }}
-              />
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: 6,
-                  left: 6,
-                  right: 6,
-                  background: "rgba(15,23,42,0.85)",
-                  backdropFilter: "blur(6px)",
-                  borderRadius: 6,
-                  padding: "3px 8px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  border: "1px solid rgba(255,255,255,0.1)",
-                }}
-              >
-                <span
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: "50%",
-                    background: "#10b981",
-                    flexShrink: 0,
-                  }}
-                />
-                <span
-                  style={{
-                    color: "#fff",
-                    fontSize: 11,
-                    fontWeight: 600,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {username} (You)
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Remote Proximity Video Tiles */}
+          {/* Remote Video Tiles */}
           {Array.from(remoteVideoElements.entries()).map(([identity, videoEl]) => (
-            <RemoteVideoTile key={identity} identity={identity} videoEl={videoEl} />
+            <GatherVideoTile key={identity} identity={identity} videoEl={videoEl} />
           ))}
 
-          {/* Fallback Audio Tile if connected to peer but peer camera is OFF */}
+          {/* Fallback Audio Tile if peer camera is OFF */}
           {livekitState?.status === "connected" && !hasRemoteVideo && targetPeerId && (
-            <div
-              style={{
-                position: "relative",
-                width: 176,
-                height: 110,
-                borderRadius: 14,
-                background: "linear-gradient(135deg, #1e1b4b, #312e81)",
-                border: "1.5px solid rgba(129, 140, 248, 0.4)",
-                boxShadow: "0 6px 24px rgba(0,0,0,0.5)",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-              }}
-            >
-              {/* Avatar circle */}
-              <div
-                style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg, #6366f1, #a855f7)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#fff",
-                  fontWeight: 700,
-                  fontSize: 16,
-                  boxShadow: "0 4px 12px rgba(99,102,241,0.4)",
-                }}
-              >
-                {(targetPeerId || "P").slice(0, 2).toUpperCase()}
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  background: "rgba(0,0,0,0.4)",
-                  padding: "2px 10px",
-                  borderRadius: 12,
-                }}
-              >
-                <span
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: "50%",
-                    background: "#10b981",
-                  }}
-                />
-                <span style={{ color: "#e0e7ff", fontSize: 11, fontWeight: 600 }}>
-                  Audio Active
-                </span>
-              </div>
-            </div>
+            <GatherAudioTile identity={targetPeerId} />
           )}
+
+          {/* Collapse Video Strip Button */}
+          <button
+            onClick={() => setIsVideoBarCollapsed(true)}
+            style={{
+              background: "rgba(15, 23, 42, 0.85)",
+              border: "1px solid rgba(255, 255, 255, 0.12)",
+              borderRadius: 10,
+              color: "rgba(255,255,255,0.7)",
+              padding: 6,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              backdropFilter: "blur(8px)",
+              flexShrink: 0,
+            }}
+            title="Minimize Video Strip"
+          >
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+            </svg>
+          </button>
         </div>
       )}
+
+      {/* Restore Video Strip Button if collapsed */}
+      {isProximityActive && isVideoBarCollapsed && (
+        <button
+          onClick={() => setIsVideoBarCollapsed(false)}
+          style={{
+            position: "absolute",
+            top: 12,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 35,
+            pointerEvents: "auto",
+            background: "rgba(15, 23, 42, 0.92)",
+            border: "1px solid rgba(99, 102, 241, 0.4)",
+            backdropFilter: "blur(12px)",
+            borderRadius: 20,
+            padding: "6px 14px",
+            color: "#fff",
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+          }}
+        >
+          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#10b981" }} />
+          <span>Show Proximity Videos</span>
+        </button>
+      )}
+
+      {/* ── Bottom-Right Floating Self Box (Gather.town style) ── */}
+      <div
+        style={{
+          position: "fixed",
+          bottom: 80,
+          right: 18,
+          zIndex: 35,
+          pointerEvents: "auto",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-end",
+          gap: 6,
+        }}
+      >
+        {isCamOn ? (
+          <div
+            style={{
+              position: "relative",
+              width: 180,
+              height: 124,
+              borderRadius: 14,
+              overflow: "hidden",
+              border: "2px solid rgba(99,102,241,0.6)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+              background: "#0f172a",
+            }}
+          >
+            <video
+              ref={localVideoRef}
+              autoPlay
+              playsInline
+              muted
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                transform: "scaleX(-1)",
+              }}
+            />
+            {/* Top-left name badge */}
+            <div
+              style={{
+                position: "absolute",
+                top: 6,
+                left: 6,
+                background: "rgba(15,23,42,0.85)",
+                backdropFilter: "blur(6px)",
+                borderRadius: 8,
+                padding: "3px 8px",
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                border: "1px solid rgba(255,255,255,0.12)",
+              }}
+            >
+              {isMicOn ? (
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#10b981" }} />
+              ) : (
+                <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="#ef4444" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                </svg>
+              )}
+              <span style={{ color: "#fff", fontSize: 11, fontWeight: 700 }}>
+                {username} (You)
+              </span>
+            </div>
+            {/* Bottom-right avatar circle */}
+            <div
+              style={{
+                position: "absolute",
+                bottom: 6,
+                right: 6,
+                width: 26,
+                height: 26,
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                border: "2px solid #fff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 10,
+                fontWeight: 800,
+                color: "#fff",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.5)",
+              }}
+            >
+              {(username || "U").slice(0, 1).toUpperCase()}
+            </div>
+          </div>
+        ) : (
+          /* Mini self avatar badge if camera is OFF */
+          <div
+            style={{
+              background: "rgba(15, 23, 42, 0.92)",
+              border: "1px solid rgba(255, 255, 255, 0.12)",
+              backdropFilter: "blur(14px)",
+              borderRadius: 14,
+              padding: "8px 12px",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+            }}
+          >
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 11,
+                fontWeight: 800,
+                color: "#fff",
+              }}
+            >
+              {(username || "U").slice(0, 1).toUpperCase()}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ color: "#fff", fontSize: 11, fontWeight: 700 }}>
+                {username}
+              </span>
+              <span style={{ color: isMicOn ? "#34d399" : "#fca5a5", fontSize: 9, fontWeight: 600 }}>
+                {isMicOn ? "Mic Active" : "Muted"}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* ── Bottom-centre Gather-style control bar ── */}
       <div
@@ -355,7 +420,7 @@ export function VideoOverlay({
           </div>
         </div>
 
-        {/* Action icons: Map, Screen, Emoji */}
+        {/* Action icons: Map, Screen, Permissions, Chat */}
         <div
           style={{
             display: "flex",
@@ -454,7 +519,8 @@ export function VideoOverlay({
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-function RemoteVideoTile({
+/** Gather.town-style Remote Video Tile */
+function GatherVideoTile({
   identity,
   videoEl,
 }: {
@@ -462,7 +528,7 @@ function RemoteVideoTile({
   videoEl: HTMLVideoElement;
 }) {
   useEffect(() => {
-    const container = document.getElementById(`remote-tile-${identity}`);
+    const container = document.getElementById(`gather-tile-${identity}`);
     if (container && videoEl) {
       videoEl.style.width = "100%";
       videoEl.style.height = "100%";
@@ -483,30 +549,33 @@ function RemoteVideoTile({
     <div
       style={{
         position: "relative",
-        width: 176,
-        height: 128,
+        width: 180,
+        height: 120,
         borderRadius: 14,
         overflow: "hidden",
         border: "1.5px solid rgba(255,255,255,0.2)",
-        boxShadow: "0 6px 24px rgba(0,0,0,0.5)",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
         background: "#0f172a",
+        flexShrink: 0,
+        transition: "transform 0.15s ease",
       }}
     >
-      <div id={`remote-tile-${identity}`} style={{ width: "100%", height: "100%" }} />
+      <div id={`gather-tile-${identity}`} style={{ width: "100%", height: "100%" }} />
+
+      {/* Top-left Username Tag Badge (Gather style) */}
       <div
         style={{
           position: "absolute",
-          bottom: 6,
+          top: 6,
           left: 6,
-          right: 6,
           background: "rgba(15,23,42,0.85)",
           backdropFilter: "blur(6px)",
-          borderRadius: 6,
+          borderRadius: 8,
           padding: "3px 8px",
           display: "flex",
           alignItems: "center",
-          gap: 6,
-          border: "1px solid rgba(255,255,255,0.1)",
+          gap: 5,
+          border: "1px solid rgba(255,255,255,0.12)",
         }}
       >
         <span
@@ -522,13 +591,142 @@ function RemoteVideoTile({
           style={{
             color: "#fff",
             fontSize: 11,
-            fontWeight: 600,
+            fontWeight: 700,
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
+            maxWidth: 110,
           }}
         >
           {identity}
+        </span>
+      </div>
+
+      {/* Bottom-right Avatar Circle Badge (Gather signature look) */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 6,
+          right: 6,
+          width: 24,
+          height: 24,
+          borderRadius: "50%",
+          background: "linear-gradient(135deg, #e11d48, #f43f5e)",
+          border: "2px solid #fff",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 10,
+          fontWeight: 800,
+          color: "#fff",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.5)",
+        }}
+      >
+        {identity.slice(0, 1).toUpperCase()}
+      </div>
+    </div>
+  );
+}
+
+/** Fallback Gather.town-style Audio Tile when Peer Camera is OFF */
+function GatherAudioTile({ identity }: { identity: string }) {
+  return (
+    <div
+      style={{
+        position: "relative",
+        width: 180,
+        height: 120,
+        borderRadius: 14,
+        background: "linear-gradient(135deg, #1e1b4b, #312e81)",
+        border: "1.5px solid rgba(129, 140, 248, 0.4)",
+        boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        flexShrink: 0,
+      }}
+    >
+      {/* Top-left Username Tag Badge */}
+      <div
+        style={{
+          position: "absolute",
+          top: 6,
+          left: 6,
+          background: "rgba(15,23,42,0.85)",
+          backdropFilter: "blur(6px)",
+          borderRadius: 8,
+          padding: "3px 8px",
+          display: "flex",
+          alignItems: "center",
+          gap: 5,
+          border: "1px solid rgba(255,255,255,0.12)",
+        }}
+      >
+        <span
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: "50%",
+            background: "#10b981",
+            flexShrink: 0,
+          }}
+        />
+        <span
+          style={{
+            color: "#fff",
+            fontSize: 11,
+            fontWeight: 700,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            maxWidth: 110,
+          }}
+        >
+          {identity}
+        </span>
+      </div>
+
+      {/* Avatar circle */}
+      <div
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: "50%",
+          background: "linear-gradient(135deg, #6366f1, #a855f7)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "#fff",
+          fontWeight: 800,
+          fontSize: 17,
+          boxShadow: "0 4px 14px rgba(99,102,241,0.5)",
+        }}
+      >
+        {identity.slice(0, 1).toUpperCase()}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          background: "rgba(0,0,0,0.4)",
+          padding: "2px 10px",
+          borderRadius: 12,
+        }}
+      >
+        <span
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: "50%",
+            background: "#10b981",
+          }}
+        />
+        <span style={{ color: "#e0e7ff", fontSize: 10, fontWeight: 700 }}>
+          Audio Active
         </span>
       </div>
     </div>
