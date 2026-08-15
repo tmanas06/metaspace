@@ -262,12 +262,6 @@ class LiveKitManager {
 
       await this.room.connect(finalLivekitUrl, token, {
         autoSubscribe: true,
-        rtcConfig: {
-          iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
-            { urls: "stun:stun.cloudflare.com:3478" },
-          ],
-        },
       });
 
       // Check tracks of participants ALREADY in the room
