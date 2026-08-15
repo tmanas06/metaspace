@@ -36,12 +36,12 @@ export function ControlsModal({ isOpen, onClose }: ControlsModalProps) {
             <div className="font-semibold text-white">Avatar Movement</div>
             <div className="grid grid-cols-2 gap-2 text-zinc-300">
               <div className="flex items-center gap-2">
-                <kbd className="px-2 py-1 bg-white/10 border border-white/20 rounded text-[11px] font-mono text-white">W A S D</kbd>
-                <span>Move direction</span>
+                <kbd className="px-2 py-1 bg-white/10 border border-white/20 rounded text-[11px] font-mono text-white">Arrow Keys</kbd>
+                <span>Desktop movement</span>
               </div>
               <div className="flex items-center gap-2">
-                <kbd className="px-2 py-1 bg-white/10 border border-white/20 rounded text-[11px] font-mono text-white">Arrow Keys</kbd>
-                <span>Alternate keys</span>
+                <span className="px-2 py-1 bg-indigo-600/30 border border-indigo-500/40 rounded text-[11px] font-semibold text-indigo-300">Joystick</span>
+                <span>Mobile touch control</span>
               </div>
             </div>
           </div>

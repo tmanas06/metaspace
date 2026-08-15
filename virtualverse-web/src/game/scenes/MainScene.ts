@@ -21,12 +21,6 @@ export class MainScene extends Phaser.Scene {
   private walls!: Phaser.Physics.Arcade.StaticGroup;
 
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
-  private wasd!: {
-    up: Phaser.Input.Keyboard.Key;
-    down: Phaser.Input.Keyboard.Key;
-    left: Phaser.Input.Keyboard.Key;
-    right: Phaser.Input.Keyboard.Key;
-  };
 
   private remoteAvatars: Map<string, RemoteAvatar> = new Map();
   private proximityActive: Set<string> = new Set();
@@ -97,14 +91,8 @@ export class MainScene extends Phaser.Scene {
     // Ensure camera viewport covers the whole canvas (not just world bounds)
     this.cameras.main.setViewport(0, 0, this.scale.width, this.scale.height);
 
-    // Input keys
+    // Input keys — Arrow keys for desktop movement (WASD and Spacebar disabled)
     this.cursors = this.input.keyboard!.createCursorKeys();
-    this.wasd = {
-      up: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.W),
-      down: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.S),
-      left: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.A),
-      right: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.D),
-    };
 
     // Register state applier on bridge
     gameBridge.registerStateApplier((players: PlayerState[]) => {
@@ -311,13 +299,24 @@ export class MainScene extends Phaser.Scene {
     if (!this.playerContainer?.body) return;
     const body = this.playerContainer.body as Phaser.Physics.Arcade.Body;
 
+    // Check if the user is currently typing in an input element or textarea (e.g. Chat or Search)
+    const activeEl = typeof document !== "undefined" ? document.activeElement : null;
+    const isTyping = Boolean(
+      activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          (activeEl as HTMLElement).isContentEditable)
+    );
+
+    const keyboardAllowed = !isTyping;
+
     // Merge keyboard and touch (virtual joystick) input
     const touch = gameBridge.getTouchInput();
 
-    const left  = this.cursors.left.isDown  || this.wasd.left.isDown  || touch.left;
-    const right = this.cursors.right.isDown || this.wasd.right.isDown || touch.right;
-    const up    = this.cursors.up.isDown    || this.wasd.up.isDown    || touch.up;
-    const down  = this.cursors.down.isDown  || this.wasd.down.isDown  || touch.down;
+    const left  = (keyboardAllowed && this.cursors.left.isDown)  || touch.left;
+    const right = (keyboardAllowed && this.cursors.right.isDown) || touch.right;
+    const up    = (keyboardAllowed && this.cursors.up.isDown)    || touch.up;
+    const down  = (keyboardAllowed && this.cursors.down.isDown)  || touch.down;
 
     let vx = 0;
     let vy = 0;
