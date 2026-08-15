@@ -273,25 +273,18 @@ class LiveKitManager {
         });
       });
 
-      // Create and publish local media tracks (with graceful audio/video fallback)
-      try {
-        this.localTracks = await createLocalTracks({
-          audio: this.state.micEnabled,
-          video: this.state.camEnabled,
-        });
-      } catch (mediaErr) {
-        console.warn("[LiveKit] Failed audio+video track creation, falling back to audio only:", mediaErr);
+      // Enable microphone and camera on local participant via official LiveKit methods
+      if (this.room) {
         try {
-          this.localTracks = await createLocalTracks({ audio: true, video: false });
-        } catch (audioErr) {
-          console.warn("[LiveKit] Audio track creation also failed:", audioErr);
+          if (this.state.micEnabled) {
+            await this.room.localParticipant.setMicrophoneEnabled(true);
+          }
+          if (this.state.camEnabled) {
+            await this.room.localParticipant.setCameraEnabled(true);
+          }
+        } catch (mediaErr) {
+          console.warn("[LiveKit] Failed enabling mic/cam on localParticipant:", mediaErr);
         }
-      }
-
-      if (this.localTracks.length > 0) {
-        await Promise.all(
-          this.localTracks.map((t) => this.room!.localParticipant.publishTrack(t))
-        );
       }
 
       this.setState({ status: "connected" });
@@ -325,6 +318,10 @@ class LiveKitManager {
   }
 
   getLocalVideoTrack(): LocalTrack | null {
+    if (this.room?.localParticipant) {
+      const pub = this.room.localParticipant.getTrackPublication(Track.Source.Camera);
+      if (pub?.videoTrack) return pub.videoTrack as LocalTrack;
+    }
     return (this.localTracks.find((t) => t.kind === Track.Kind.Video) as LocalTrack) ?? null;
   }
 
@@ -338,6 +335,7 @@ class LiveKitManager {
       const videoEl = track.attach() as HTMLVideoElement;
       videoEl.autoplay = true;
       videoEl.playsInline = true;
+      videoEl.play().catch((e) => console.warn("[LiveKit] Remote video play blocked:", e));
       const newMap = new Map(this.state.remoteVideoElements);
       newMap.set(participant.identity, videoEl);
       this.setState({ remoteVideoElements: newMap });

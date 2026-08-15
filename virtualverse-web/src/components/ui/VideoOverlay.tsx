@@ -486,6 +486,7 @@ function RemoteVideoTile({
       videoEl.playsInline = true;
       videoEl.muted = false;
       container.appendChild(videoEl);
+      videoEl.play().catch((err) => console.warn("[VideoTile] Remote video play error:", err));
     }
     return () => {
       try {
