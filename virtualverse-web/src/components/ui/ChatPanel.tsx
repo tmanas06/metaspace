@@ -350,6 +350,8 @@ export function ChatPanel({ username, disabled, isOpen = true, onClose }: ChatPa
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.stopPropagation()}
+          onKeyUp={(e) => e.stopPropagation()}
           disabled={disabled}
           placeholder="Send a message…"
           style={{

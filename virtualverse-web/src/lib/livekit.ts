@@ -17,6 +17,7 @@ import {
   Track,
   RemoteParticipant,
   RemoteTrackPublication,
+  RemoteTrack,
   createLocalTracks,
   LocalTrack,
 } from "livekit-client";
@@ -29,6 +30,7 @@ export interface LiveKitState {
   status: LiveKitStatus;
   activeTargetId: string | null;
   error: string | null;
+  remoteVideoTracks: Map<string, RemoteTrack>;
   remoteVideoElements: Map<string, HTMLVideoElement>;
   micEnabled: boolean;
   camEnabled: boolean;
@@ -47,6 +49,7 @@ class LiveKitManager {
     status: "idle",
     activeTargetId: null,
     error: null,
+    remoteVideoTracks: new Map(),
     remoteVideoElements: new Map(),
     micEnabled: true,
     camEnabled: true,
@@ -309,6 +312,7 @@ class LiveKitManager {
       status: "idle",
       activeTargetId: null,
       error: null,
+      remoteVideoTracks: new Map(),
       remoteVideoElements: new Map(),
     });
   }
@@ -336,9 +340,17 @@ class LiveKitManager {
       videoEl.autoplay = true;
       videoEl.playsInline = true;
       videoEl.play().catch((e) => console.warn("[LiveKit] Remote video play blocked:", e));
+
       const newMap = new Map(this.state.remoteVideoElements);
       newMap.set(participant.identity, videoEl);
-      this.setState({ remoteVideoElements: newMap });
+
+      const newTracksMap = new Map(this.state.remoteVideoTracks);
+      newTracksMap.set(participant.identity, track as RemoteTrack);
+
+      this.setState({
+        remoteVideoElements: newMap,
+        remoteVideoTracks: newTracksMap,
+      });
     } else if (track.kind === Track.Kind.Audio) {
       // Clean up previous audio element for this participant if any
       const existing = document.getElementById(`remote-audio-${participant.identity}`);
@@ -380,7 +392,14 @@ class LiveKitManager {
 
     const newMap = new Map(this.state.remoteVideoElements);
     newMap.delete(participant.identity);
-    this.setState({ remoteVideoElements: newMap });
+
+    const newTracksMap = new Map(this.state.remoteVideoTracks);
+    newTracksMap.delete(participant.identity);
+
+    this.setState({
+      remoteVideoElements: newMap,
+      remoteVideoTracks: newTracksMap,
+    });
   }
 
   private async cleanup() {

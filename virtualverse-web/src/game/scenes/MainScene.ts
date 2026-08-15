@@ -93,6 +93,10 @@ export class MainScene extends Phaser.Scene {
 
     // Input keys — Arrow keys for desktop movement (WASD and Spacebar disabled)
     this.cursors = this.input.keyboard!.createCursorKeys();
+    if (this.input.keyboard) {
+      this.input.keyboard.removeCapture("SPACE");
+      this.input.keyboard.removeCapture(32);
+    }
 
     // Register state applier on bridge
     gameBridge.registerStateApplier((players: PlayerState[]) => {

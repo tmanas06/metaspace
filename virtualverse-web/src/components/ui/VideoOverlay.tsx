@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { LiveKitState } from "@/lib/livekit";
+import { RemoteTrack } from "livekit-client";
 
 interface VideoOverlayProps {
   livekitState?: LiveKitState;
@@ -209,9 +210,13 @@ export function VideoOverlay({
           )}
 
           {/* Remote Proximity Video Tiles */}
-          {Array.from(remoteVideoElements.entries()).map(([identity, videoEl]) => (
-            <RemoteVideoTile key={identity} identity={identity} videoEl={videoEl} />
-          ))}
+          {livekitState?.remoteVideoTracks && livekitState.remoteVideoTracks.size > 0
+            ? Array.from(livekitState.remoteVideoTracks.entries()).map(([identity, track]) => (
+                <RemoteVideoTile key={identity} identity={identity} track={track} />
+              ))
+            : Array.from(remoteVideoElements.entries()).map(([identity, videoEl]) => (
+                <RemoteVideoTile key={identity} identity={identity} videoEl={videoEl} />
+              ))}
 
           {/* Fallback Audio Tile if connected to peer but peer camera is OFF */}
           {livekitState?.status === "connected" && !hasRemoteVideo && targetPeerId && (
@@ -472,28 +477,43 @@ export function VideoOverlay({
 function RemoteVideoTile({
   identity,
   videoEl,
+  track,
 }: {
   identity: string;
-  videoEl: HTMLVideoElement;
+  videoEl?: HTMLVideoElement;
+  track?: RemoteTrack;
 }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
   useEffect(() => {
-    const container = document.getElementById(`remote-tile-${identity}`);
-    if (container && videoEl) {
-      videoEl.style.width = "100%";
-      videoEl.style.height = "100%";
-      videoEl.style.objectFit = "cover";
-      videoEl.autoplay = true;
-      videoEl.playsInline = true;
-      videoEl.muted = false;
-      container.appendChild(videoEl);
-      videoEl.play().catch((err) => console.warn("[VideoTile] Remote video play error:", err));
+    const el = videoRef.current;
+    if (track && el) {
+      track.attach(el);
+      el.play().catch((err) => console.warn("[VideoTile] Track play error:", err));
+      return () => {
+        try {
+          track.detach(el);
+        } catch {}
+      };
+    } else if (videoEl) {
+      const container = document.getElementById(`remote-tile-${identity}`);
+      if (container) {
+        videoEl.style.width = "100%";
+        videoEl.style.height = "100%";
+        videoEl.style.objectFit = "cover";
+        videoEl.autoplay = true;
+        videoEl.playsInline = true;
+        videoEl.muted = false;
+        container.appendChild(videoEl);
+        videoEl.play().catch((err) => console.warn("[VideoTile] Remote video play error:", err));
+      }
+      return () => {
+        try {
+          container?.removeChild(videoEl);
+        } catch {}
+      };
     }
-    return () => {
-      try {
-        container?.removeChild(videoEl);
-      } catch { }
-    };
-  }, [identity, videoEl]);
+  }, [identity, videoEl, track]);
 
   return (
     <div
@@ -508,7 +528,20 @@ function RemoteVideoTile({
         background: "#0f172a",
       }}
     >
-      <div id={`remote-tile-${identity}`} style={{ width: "100%", height: "100%" }} />
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          display: track ? "block" : "none",
+        }}
+      />
+      {!track && (
+        <div id={`remote-tile-${identity}`} style={{ width: "100%", height: "100%" }} />
+      )}
       <div
         style={{
           position: "absolute",
