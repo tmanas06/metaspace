@@ -240,6 +240,17 @@ class LiveKitManager {
 
       this.room.on(RoomEvent.TrackSubscribed, this.handleTrackSubscribed.bind(this));
       this.room.on(RoomEvent.TrackUnsubscribed, this.handleTrackUnsubscribed.bind(this));
+      this.room.on(RoomEvent.ParticipantConnected, (participant) => {
+        console.log("[LiveKit] Remote participant connected:", participant.identity);
+        participant.trackPublications.forEach((pub) => {
+          if (pub.isSubscribed && pub.track) {
+            this.handleTrackSubscribed(pub.track, pub, participant);
+          }
+        });
+      });
+      this.room.on(RoomEvent.TrackPublished, (pub) => {
+        pub.setSubscribed(true);
+      });
       this.room.on(RoomEvent.Disconnected, () => {
         console.log("[LiveKit] Disconnected from room");
         this.setState({ status: "idle", activeTargetId: null });
@@ -248,7 +259,7 @@ class LiveKitManager {
 
       await this.room.connect(finalLivekitUrl, token);
 
-      // CRITICAL FIX: Check tracks of participants ALREADY in the room before we joined
+      // Check tracks of participants ALREADY in the room
       this.room.remoteParticipants.forEach((participant) => {
         participant.trackPublications.forEach((pub) => {
           if (pub.isSubscribed && pub.track) {
@@ -306,6 +317,10 @@ class LiveKitManager {
     this.setState({ error: null });
   }
 
+  getLocalVideoTrack(): LocalTrack | null {
+    return (this.localTracks.find((t) => t.kind === Track.Kind.Video) as LocalTrack) ?? null;
+  }
+
   private handleTrackSubscribed(
     track: RemoteTrackPublication["track"],
     _pub: RemoteTrackPublication,
@@ -320,19 +335,30 @@ class LiveKitManager {
       newMap.set(participant.identity, videoEl);
       this.setState({ remoteVideoElements: newMap });
     } else if (track.kind === Track.Kind.Audio) {
-      // Audio needs to be attached to DOM to play
+      // Clean up previous audio element for this participant if any
+      const existing = document.getElementById(`remote-audio-${participant.identity}`);
+      if (existing) existing.remove();
+
       const audioEl = track.attach() as HTMLAudioElement;
       audioEl.id = `remote-audio-${participant.identity}`;
       audioEl.autoplay = true;
+      audioEl.volume = 1.0;
       document.body.appendChild(audioEl);
-      audioEl.play().catch((err) => {
-        console.warn("[LiveKit] Audio play blocked by browser policy, unlocking on user click:", err);
-        const unlock = () => {
-          audioEl.play().catch(() => {});
-          window.removeEventListener("click", unlock);
-        };
-        window.addEventListener("click", unlock);
-      });
+
+      const playAudio = () => {
+        audioEl.play().catch((err) => {
+          console.warn("[LiveKit] Audio play blocked, unlocking on user gesture:", err);
+        });
+      };
+      playAudio();
+
+      const unlock = () => {
+        playAudio();
+        window.removeEventListener("click", unlock);
+        window.removeEventListener("touchstart", unlock);
+      };
+      window.addEventListener("click", unlock, { once: true });
+      window.addEventListener("touchstart", unlock, { once: true });
     }
   }
 
@@ -344,6 +370,9 @@ class LiveKitManager {
     if (track) {
       track.detach().forEach((el) => el.remove());
     }
+    const existingAudio = document.getElementById(`remote-audio-${participant.identity}`);
+    if (existingAudio) existingAudio.remove();
+
     const newMap = new Map(this.state.remoteVideoElements);
     newMap.delete(participant.identity);
     this.setState({ remoteVideoElements: newMap });
@@ -354,6 +383,7 @@ class LiveKitManager {
       track.stop();
     }
     this.localTracks = [];
+    document.querySelectorAll("audio[id^='remote-audio-']").forEach((el) => el.remove());
     this.room = null;
   }
 }

@@ -54,18 +54,25 @@ export function VideoOverlay({
   // Local camera self-preview stream
   useEffect(() => {
     if (isCamOn) {
-      navigator.mediaDevices
-        ?.getUserMedia({ video: true, audio: false })
-        .then((stream) => {
-          streamRef.current = stream;
-          if (localVideoRef.current) {
-            localVideoRef.current.srcObject = stream;
-          }
-        })
-        .catch((err) => {
-          console.warn("[Media] Camera permission or device error:", err);
-          setIsCamOn(false);
-        });
+      import("@/lib/livekit").then(({ liveKitManager }) => {
+        const localTrack = liveKitManager.getLocalVideoTrack();
+        if (localTrack && localVideoRef.current) {
+          localTrack.attach(localVideoRef.current);
+        } else {
+          navigator.mediaDevices
+            ?.getUserMedia({ video: true, audio: false })
+            .then((stream) => {
+              streamRef.current = stream;
+              if (localVideoRef.current) {
+                localVideoRef.current.srcObject = stream;
+              }
+            })
+            .catch((err) => {
+              console.warn("[Media] Camera permission or device error:", err);
+              setIsCamOn(false);
+            });
+        }
+      });
     } else {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop());
