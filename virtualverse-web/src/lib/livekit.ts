@@ -52,10 +52,11 @@ class LiveKitManager {
     camEnabled: true,
   };
 
-  // Debounce timers
+  // Debounce timers & locks
   private proximityStartTimer: ReturnType<typeof setTimeout> | null = null;
   private proximityEndTimer: ReturnType<typeof setTimeout> | null = null;
-  private readonly DEBOUNCE_MS = 150;
+  private readonly DEBOUNCE_MS = 600;
+  private isConnecting = false;
 
   // Unsubscribe functions from gameBridge
   private unsubStart: (() => void) | null = null;
@@ -143,13 +144,15 @@ class LiveKitManager {
   }
 
   private async connectToProximityRoom(targetId: string) {
-    // If already connected to this target, skip
+    // If already connecting or connected to this target, skip
     if (
-      this.state.status === "connected" &&
-      this.state.activeTargetId === targetId
+      this.isConnecting ||
+      (this.state.status === "connected" && this.state.activeTargetId === targetId)
     ) {
       return;
     }
+
+    this.isConnecting = true;
 
     // Disconnect from any existing room first
     if (this.room) {
@@ -257,7 +260,23 @@ class LiveKitManager {
         this.cleanup();
       });
 
-      await this.room.connect(finalLivekitUrl, token);
+      await this.room.connect(finalLivekitUrl, token, {
+        autoSubscribe: true,
+        rtcConfig: {
+          iceServers: [
+            { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
+            {
+              urls: [
+                "turn:openrelay.metered.ca:80",
+                "turn:openrelay.metered.ca:443",
+                "turn:openrelay.metered.ca:443?transport=tcp",
+              ],
+              username: "openrelayproject",
+              credential: "openrelayproject",
+            },
+          ],
+        },
+      });
 
       // Check tracks of participants ALREADY in the room
       this.room.remoteParticipants.forEach((participant) => {
@@ -297,6 +316,8 @@ class LiveKitManager {
       // Graceful fallback: return to idle so UI stays clean if LiveKit server is not configured
       this.setState({ status: "idle", error: null, activeTargetId: null });
       await this.cleanup();
+    } finally {
+      this.isConnecting = false;
     }
   }
 
