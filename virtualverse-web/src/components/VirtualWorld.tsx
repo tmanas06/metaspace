@@ -22,6 +22,7 @@ import { GameCanvas } from "@/components/GameCanvas";
 import { PlayerSidebar } from "@/components/ui/PlayerSidebar";
 import { VideoOverlay } from "@/components/ui/VideoOverlay";
 import { ChatPanel } from "@/components/ui/ChatPanel";
+import { MobileJoystick } from "@/components/ui/MobileJoystick";
 import { MapSelectorModal } from "@/components/ui/MapSelectorModal";
 import { PermissionsModal } from "@/components/ui/PermissionsModal";
 import { ControlsModal } from "@/components/ui/ControlsModal";
@@ -233,6 +234,9 @@ export function VirtualWorld() {
             </div>
           </div>
         </div>
+
+        {/* Mobile virtual joystick — only shown on touch devices */}
+        {isMobile && <MobileJoystick right={16} bottom={96} />}
 
         {/* Error toast */}
         {(colyseus.error || livekit.error) && (

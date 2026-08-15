@@ -43,6 +43,20 @@ class GameBridge {
   // Buffered so a late-registering Phaser scene gets the latest state on mount
   private lastKnownState: PlayerState[] | null = null;
 
+  // Touch/joystick input injected by the React MobileJoystick component.
+  // Phaser's update() reads this every frame alongside keyboard input.
+  private touchInput: BooleanInput = { left: false, right: false, up: false, down: false };
+
+  /** Called by the React MobileJoystick to drive movement from touch. */
+  setTouchInput(input: BooleanInput) {
+    this.touchInput = input;
+  }
+
+  /** Called by Phaser's update() to merge touch + keyboard input. */
+  getTouchInput(): BooleanInput {
+    return this.touchInput;
+  }
+
   // Called by Phaser when local player presses keys
   emitInput(input: BooleanInput) {
     this.inputListeners.forEach((fn) => fn(input));

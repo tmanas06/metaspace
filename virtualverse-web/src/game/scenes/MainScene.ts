@@ -311,10 +311,13 @@ export class MainScene extends Phaser.Scene {
     if (!this.playerContainer?.body) return;
     const body = this.playerContainer.body as Phaser.Physics.Arcade.Body;
 
-    const left = this.cursors.left.isDown || this.wasd.left.isDown;
-    const right = this.cursors.right.isDown || this.wasd.right.isDown;
-    const up = this.cursors.up.isDown || this.wasd.up.isDown;
-    const down = this.cursors.down.isDown || this.wasd.down.isDown;
+    // Merge keyboard and touch (virtual joystick) input
+    const touch = gameBridge.getTouchInput();
+
+    const left  = this.cursors.left.isDown  || this.wasd.left.isDown  || touch.left;
+    const right = this.cursors.right.isDown || this.wasd.right.isDown || touch.right;
+    const up    = this.cursors.up.isDown    || this.wasd.up.isDown    || touch.up;
+    const down  = this.cursors.down.isDown  || this.wasd.down.isDown  || touch.down;
 
     let vx = 0;
     let vy = 0;
