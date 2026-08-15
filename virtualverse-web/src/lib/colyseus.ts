@@ -92,6 +92,10 @@ class ColyseusManager {
     return this.state;
   }
 
+  clearError() {
+    this.setState({ error: null });
+  }
+
   getPlayers() {
     return this.playersState;
   }

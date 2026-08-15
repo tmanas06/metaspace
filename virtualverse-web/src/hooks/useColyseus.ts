@@ -24,5 +24,9 @@ export function useColyseus() {
     colyseusManager.disconnect();
   }, []);
 
-  return { ...state, connect, disconnect };
+  const clearError = useCallback(() => {
+    colyseusManager.clearError();
+  }, []);
+
+  return { ...state, connect, disconnect, clearError };
 }

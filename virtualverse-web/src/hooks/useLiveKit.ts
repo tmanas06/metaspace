@@ -24,5 +24,9 @@ export function useLiveKit() {
     liveKitManager.disconnectProximityRoom();
   }, []);
 
-  return { ...state, disconnect };
+  const clearError = useCallback(() => {
+    liveKitManager.clearError();
+  }, []);
+
+  return { ...state, disconnect, clearError };
 }

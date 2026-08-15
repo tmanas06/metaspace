@@ -281,7 +281,10 @@ class LiveKitManager {
       this.setState({ status: "connected" });
       console.log(`[LiveKit] Successfully connected to proximity room with ${targetId}`);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      let msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("could not establish pc connection")) {
+        msg = "Proximity Call Notice: WebRTC peer connection failed. (LiveKit media server unreachable)";
+      }
       console.error("[LiveKit] Connection error:", msg);
       this.setState({ status: "error", error: msg, activeTargetId: null });
       await this.cleanup();
@@ -296,8 +299,13 @@ class LiveKitManager {
     this.setState({
       status: "idle",
       activeTargetId: null,
+      error: null,
       remoteVideoElements: new Map(),
     });
+  }
+
+  clearError() {
+    this.setState({ error: null });
   }
 
   private handleTrackSubscribed(

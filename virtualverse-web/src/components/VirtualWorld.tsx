@@ -75,6 +75,18 @@ export function VirtualWorld() {
   const livekit = useLiveKit();
   const players = usePlayers(username);
 
+  // Auto-dismiss error toasts after 6 seconds
+  const activeError = colyseus.error ?? livekit.error;
+  useEffect(() => {
+    if (activeError) {
+      const timer = setTimeout(() => {
+        colyseus.clearError();
+        livekit.clearError();
+      }, 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [activeError, colyseus, livekit]);
+
   // Load presets from server REST API on mount
   useEffect(() => {
     fetchRoomPresets().then((list) => {
@@ -239,7 +251,7 @@ export function VirtualWorld() {
         {isMobile && <MobileJoystick right={16} bottom={96} />}
 
         {/* Error toast */}
-        {(colyseus.error || livekit.error) && (
+        {activeError && (
           <div
             id="error-toast"
             style={{
@@ -247,20 +259,43 @@ export function VirtualWorld() {
               top: 16,
               left: "50%",
               transform: "translateX(-50%)",
-              background: "rgba(127,29,29,0.9)",
-              border: "1px solid rgba(239,68,68,0.4)",
+              background: "rgba(127,29,29,0.92)",
+              border: "1px solid rgba(239,68,68,0.5)",
               color: "#fca5a5",
               fontSize: 11,
-              fontFamily: "monospace",
-              padding: "6px 16px",
+              fontFamily: "inherit",
+              padding: "8px 14px",
               borderRadius: 10,
-              backdropFilter: "blur(8px)",
-              pointerEvents: "none",
-              zIndex: 40,
-              boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+              backdropFilter: "blur(12px)",
+              pointerEvents: "auto",
+              zIndex: 50,
+              boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              maxWidth: "calc(100vw - 32px)",
             }}
           >
-            {colyseus.error ?? livekit.error}
+            <span>{activeError}</span>
+            <button
+              onClick={() => {
+                colyseus.clearError();
+                livekit.clearError();
+              }}
+              style={{
+                background: "none",
+                border: "none",
+                color: "rgba(255,255,255,0.7)",
+                cursor: "pointer",
+                padding: "2px 4px",
+                borderRadius: 4,
+                fontSize: 13,
+                lineHeight: 1,
+              }}
+              title="Dismiss notice"
+            >
+              ✕
+            </button>
           </div>
         )}
       </div>
