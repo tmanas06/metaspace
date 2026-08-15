@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -22,6 +22,22 @@ export const metadata: Metadata = {
     description: "Real-time multiplayer world with proximity video chat",
     type: "website",
   },
+};
+
+/**
+ * Viewport export tells Next.js to emit the correct <meta name="viewport"> tag.
+ * - width=device-width: use the real device width, not the 980px virtual width.
+ * - initial-scale=1: don't zoom in/out on load.
+ * - maximum-scale=1: prevent double-tap zoom that breaks the Phaser canvas.
+ * - interactive-widget=resizes-content: on Android, keep layout stable when
+ *   the virtual keyboard appears.
+ */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

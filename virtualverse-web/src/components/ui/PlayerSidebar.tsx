@@ -13,6 +13,10 @@ interface PlayerSidebarProps {
   onLeave: () => void;
   /** Called when Invite is clicked; should return the URL to copy */
   onInvite?: () => string;
+  /** If true, the sidebar starts collapsed (mobile default). */
+  defaultCollapsed?: boolean;
+  /** Called whenever the sidebar collapses or expands. */
+  onCollapsedChange?: (collapsed: boolean) => void;
 }
 
 /** Deterministic hue from a string so each player gets a consistent colour. */
@@ -59,10 +63,18 @@ export function PlayerSidebar({
   onOpenPermissions,
   onLeave,
   onInvite,
+  defaultCollapsed = false,
+  onCollapsedChange,
 }: PlayerSidebarProps) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [search, setSearch] = useState("");
   const [copied, setCopied] = useState(false);
+
+  // Notify parent when collapsed state changes
+  const handleCollapse = (next: boolean) => {
+    setCollapsed(next);
+    onCollapsedChange?.(next);
+  };
 
   const handleInvite = () => {
     const url = onInvite ? onInvite() : window.location.href;
@@ -117,7 +129,7 @@ export function PlayerSidebar({
         }}
       >
         <button
-          onClick={() => setCollapsed(false)}
+          onClick={() => handleCollapse(false)}
           title="Expand sidebar"
           style={{
             background: "none",
@@ -206,7 +218,7 @@ export function PlayerSidebar({
 
         {/* Collapse chevron */}
         <button
-          onClick={() => setCollapsed(true)}
+          onClick={() => handleCollapse(true)}
           title="Collapse sidebar"
           style={{
             background: "none",

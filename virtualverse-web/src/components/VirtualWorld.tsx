@@ -13,6 +13,8 @@
  *   │          │                                      │
  *   │          │  [bottom bar: centered]              │
  *   └──────────┴──────────────────────────────────────┘
+ *
+ * Mobile: sidebar starts collapsed (44px), canvas fills the screen.
  */
 
 import { useState, useEffect } from "react";
@@ -29,6 +31,19 @@ import { usePlayers } from "@/hooks/usePlayers";
 import { fetchRoomPresets, FALLBACK_MAP_PRESETS, MapPresetData } from "@/lib/api";
 import { gameBridge } from "@/game/GameBridge";
 
+/** Returns true when the viewport is a phone/tablet (≤ 768 px wide). */
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return isMobile;
+}
+
 export function VirtualWorld() {
   const [username, setUsername] = useState("");
   const [joined, setJoined] = useState(false);
@@ -43,6 +58,17 @@ export function VirtualWorld() {
   const [isPermissionsOpen, setIsPermissionsOpen] = useState(false);
   const [isControlsOpen, setIsControlsOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(true);
+
+  // Responsive: track sidebar width so the canvas wrapper shifts correctly.
+  // On mobile the sidebar starts collapsed (44 px) so the canvas fills the screen.
+  const isMobile = useIsMobile();
+  const [sidebarWidth, setSidebarWidth] = useState(220);
+
+  // When mobile status becomes known, collapse the sidebar immediately.
+  useEffect(() => {
+    if (isMobile) setSidebarWidth(44);
+    else setSidebarWidth(220);
+  }, [isMobile]);
 
   const colyseus = useColyseus();
   const livekit = useLiveKit();
@@ -125,7 +151,7 @@ export function VirtualWorld() {
           top: 0,
           left: 0,
           bottom: 0,
-          width: 220,
+          width: sidebarWidth,
           zIndex: 20,
         }}
       >
@@ -137,6 +163,8 @@ export function VirtualWorld() {
           onOpenControls={() => setIsControlsOpen(true)}
           onOpenPermissions={() => setIsPermissionsOpen(true)}
           onLeave={handleLeave}
+          defaultCollapsed={isMobile}
+          onCollapsedChange={(collapsed) => setSidebarWidth(collapsed ? 44 : 220)}
           onInvite={() => {
             // Build invite URL with current map encoded as a ?map= query param
             // so the invited user lands on the same map automatically.
@@ -153,10 +181,11 @@ export function VirtualWorld() {
         style={{
           position: "absolute",
           top: 0,
-          left: 220,
+          left: sidebarWidth,
           right: 0,
           bottom: 0,
           overflow: "hidden",
+          transition: "left 0.2s ease",
         }}
       >
         {/* Phaser canvas fills this container */}
@@ -186,8 +215,11 @@ export function VirtualWorld() {
             <div
               style={{
                 position: "absolute",
-                bottom: 24,
+                // Sit above the bottom control bar (≈68px tall) plus a small gap
+                bottom: "max(80px, calc(68px + env(safe-area-inset-bottom, 0px) + 12px))",
                 left: 16,
+                // On narrow phones don't let the chat panel run wider than the canvas
+                maxWidth: "calc(100% - 32px)",
                 zIndex: 25,
                 pointerEvents: "auto",
               }}

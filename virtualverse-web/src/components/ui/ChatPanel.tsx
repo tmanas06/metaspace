@@ -133,7 +133,7 @@ export function ChatPanel({ username, disabled, isOpen = true, onClose }: ChatPa
     <div
       id="chat-panel"
       style={{
-        width: isExpanded ? 480 : 310,
+        width: `min(${isExpanded ? 480 : 310}px, 100%)`,
         borderRadius: 16,
         background: "rgba(15, 23, 42, 0.95)",
         border: "1px solid rgba(255, 255, 255, 0.12)",

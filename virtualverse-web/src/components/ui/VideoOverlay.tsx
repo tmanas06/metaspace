@@ -274,13 +274,14 @@ export function VideoOverlay({
         id="gather-bottom-bar"
         style={{
           position: "fixed",
-          bottom: 16,
+          bottom: "max(16px, env(safe-area-inset-bottom, 0px))",
           left: "50%",
           transform: "translateX(-50%)",
           zIndex: 30,
           pointerEvents: "auto",
           display: "flex",
           alignItems: "center",
+          flexWrap: "nowrap",
           gap: 0,
           background: "rgba(15,23,42,0.96)",
           border: "1px solid rgba(255,255,255,0.09)",
@@ -288,6 +289,8 @@ export function VideoOverlay({
           borderRadius: 18,
           padding: "6px 10px",
           boxShadow: "0 8px 32px rgba(0,0,0,0.45)",
+          maxWidth: "calc(100vw - 32px)",
+          overflow: "hidden",
         }}
       >
         {/* User info section */}
@@ -298,6 +301,7 @@ export function VideoOverlay({
             gap: 9,
             paddingRight: 12,
             borderRight: "1px solid rgba(255,255,255,0.08)",
+            flexShrink: 0,
           }}
         >
           <div
@@ -318,7 +322,11 @@ export function VideoOverlay({
           >
             {(username || "U").slice(0, 2).toUpperCase()}
           </div>
-          <div style={{ display: "flex", flexDirection: "column" }}>
+          {/* Hide name text on very narrow screens to save space */}
+          <div
+            className="username-label"
+            style={{ display: "flex", flexDirection: "column" }}
+          >
             <span
               style={{
                 color: "#fff",
@@ -327,7 +335,7 @@ export function VideoOverlay({
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
-                maxWidth: 110,
+                maxWidth: 80,
               }}
             >
               {username || "User"}
