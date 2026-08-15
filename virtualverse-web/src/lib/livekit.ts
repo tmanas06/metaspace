@@ -29,6 +29,7 @@ export type LiveKitStatus = "idle" | "connecting" | "connected" | "error";
 export interface LiveKitState {
   status: LiveKitStatus;
   activeTargetId: string | null;
+  activeProximitySet: Set<string>;
   error: string | null;
   remoteVideoTracks: Map<string, RemoteTrack>;
   remoteVideoElements: Map<string, HTMLVideoElement>;
@@ -48,6 +49,7 @@ class LiveKitManager {
   private state: LiveKitState = {
     status: "idle",
     activeTargetId: null,
+    activeProximitySet: new Set(),
     error: null,
     remoteVideoTracks: new Map(),
     remoteVideoElements: new Map(),
@@ -87,32 +89,24 @@ class LiveKitManager {
     console.log("[LiveKit] Starting proximity event listener...");
     this.unsubStart = gameBridge.onProximityStart((targetId) => {
       console.log("[LiveKit] Proximity start received for target:", targetId);
-      // Cancel any pending disconnect
-      if (this.proximityEndTimer) {
-        clearTimeout(this.proximityEndTimer);
-        this.proximityEndTimer = null;
-      }
+      const nextSet = new Set(this.state.activeProximitySet);
+      nextSet.add(targetId);
+      this.setState({ activeProximitySet: nextSet, activeTargetId: targetId });
 
-      // Debounce connect — don't spam if player hovers at boundary
-      if (this.proximityStartTimer) clearTimeout(this.proximityStartTimer);
-      this.proximityStartTimer = setTimeout(() => {
-        this.connectToProximityRoom(targetId);
-      }, this.DEBOUNCE_MS);
+      // If not yet connected to the space room, connect now
+      if (this.state.status === "idle") {
+        this.connectToProximityRoom("virtualverse_space_main");
+      }
     });
 
-    this.unsubEnd = gameBridge.onProximityEnd((_targetId) => {
-      console.log("[LiveKit] Proximity end received");
-      // Cancel any pending connect
-      if (this.proximityStartTimer) {
-        clearTimeout(this.proximityStartTimer);
-        this.proximityStartTimer = null;
-      }
-
-      // Debounce disconnect
-      if (this.proximityEndTimer) clearTimeout(this.proximityEndTimer);
-      this.proximityEndTimer = setTimeout(() => {
-        this.disconnectProximityRoom();
-      }, this.DEBOUNCE_MS);
+    this.unsubEnd = gameBridge.onProximityEnd((targetId) => {
+      console.log("[LiveKit] Proximity end received for target:", targetId);
+      const nextSet = new Set(this.state.activeProximitySet);
+      nextSet.delete(targetId);
+      this.setState({
+        activeProximitySet: nextSet,
+        activeTargetId: nextSet.size > 0 ? Array.from(nextSet)[0] : null,
+      });
     });
   }
 
@@ -146,21 +140,13 @@ class LiveKitManager {
     }
   }
 
-  private async connectToProximityRoom(targetId: string) {
-    // If already connecting or connected to this target, skip
-    if (
-      this.isConnecting ||
-      (this.state.status === "connected" && this.state.activeTargetId === targetId)
-    ) {
+  private async connectToProximityRoom(spaceId: string = "virtualverse_space_main") {
+    // If already connecting or connected, skip
+    if (this.isConnecting || this.state.status === "connected") {
       return;
     }
 
     this.isConnecting = true;
-
-    // Disconnect from any existing room first
-    if (this.room) {
-      await this.disconnectProximityRoom();
-    }
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     const defaultLivekitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL;
@@ -171,7 +157,7 @@ class LiveKitManager {
       return;
     }
 
-    this.setState({ status: "connecting", activeTargetId: targetId, error: null });
+    this.setState({ status: "connecting", error: null });
 
     // Retrieve local Colyseus sessionId
     const { colyseusManager } = await import("@/lib/colyseus");
@@ -183,8 +169,7 @@ class LiveKitManager {
 
       const tokenPayload = {
         sessionId: localSessionId,
-        peerSessionId: targetId,
-        targetSessionId: targetId,
+        spaceId: spaceId,
       };
 
       try {
@@ -208,7 +193,7 @@ class LiveKitManager {
           const res2 = await fetch(`${apiUrl}/livekit/token`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sessionId: localSessionId, peerSessionId: targetId }),
+            body: JSON.stringify({ sessionId: localSessionId, spaceId }),
           });
           if (res2.ok) {
             const data2 = await res2.json();
@@ -291,7 +276,7 @@ class LiveKitManager {
       }
 
       this.setState({ status: "connected" });
-      console.log(`[LiveKit] Successfully connected to proximity room with ${targetId}`);
+      console.log(`[LiveKit] Successfully connected to spatial group room ${spaceId}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.warn("[LiveKit] Proximity media call unavailable (LiveKit server not connected):", msg);
