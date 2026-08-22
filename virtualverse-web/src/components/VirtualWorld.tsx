@@ -324,6 +324,34 @@ export function VirtualWorld() {
 
 // ─── Join Screen ─────────────────────────────────────────────────────────────
 
+/** Map theme → icon emoji mapping for the card grid */
+const MAP_ICONS: Record<string, string> = {
+  office: "🏢",
+  conference: "🎤",
+  auditorium: "🎭",
+  social: "🌐",
+  plaza: "🏙️",
+  studio: "🎨",
+  lounge: "☕",
+  default: "🗺️",
+};
+function getMapIcon(preset: MapPresetData): string {
+  const key = Object.keys(MAP_ICONS).find((k) =>
+    (preset.theme || preset.name || "").toLowerCase().includes(k)
+  );
+  return MAP_ICONS[key ?? "default"];
+}
+
+/** Colour accent per map index */
+const MAP_ACCENTS = ["#6366f1", "#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ec4899"];
+
+const FEATURE_HINTS = [
+  { icon: "🎮", text: "WASD / Arrow keys to move" },
+  { icon: "📹", text: "Auto video when near others" },
+  { icon: "💬", text: "Spatial chat panel" },
+  { icon: "🗺️", text: "Switch maps any time" },
+];
+
 function JoinScreen({
   onJoin,
   usernameValue,
@@ -339,116 +367,380 @@ function JoinScreen({
   selectedMapData: MapPresetData;
   onSelectMap: (v: MapPresetData) => void;
 }) {
-  return (
-    <div className="min-h-screen bg-[#0d0d1a] flex items-center justify-center px-4 relative overflow-hidden">
-      {/* Background grid pattern */}
-      <div
-        className="absolute inset-0 opacity-10"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(99,102,241,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.3) 1px, transparent 1px)",
-          backgroundSize: "40px 40px",
-        }}
-      />
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), 60);
+    return () => clearTimeout(t);
+  }, []);
 
-      <div className="relative z-10 w-full max-w-md bg-[#0f172a]/90 backdrop-blur-xl border border-white/10 p-8 rounded-2xl shadow-2xl">
-        {/* Logo Header */}
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2.5 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-600/30">
-              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
+  const fi = (d: number) => ({
+    opacity: visible ? 1 : 0,
+    transform: visible ? "translateY(0)" : "translateY(18px)",
+    transition: `opacity 0.6s ease ${d}s, transform 0.6s ease ${d}s`,
+  });
+
+  const serverHost = process.env.NEXT_PUBLIC_WS_URL
+    ? (() => { try { return new URL(process.env.NEXT_PUBLIC_WS_URL).hostname; } catch { return "online"; } })()
+    : "online";
+
+  return (
+    <>
+      <style>{`
+        /* ═══ Join Screen — VirtualVerse ═══ */
+        .js-root {
+          position: fixed; inset: 0;
+          background: #07071a;
+          display: flex; overflow: hidden;
+          font-family: var(--font-geist-sans, 'Inter', system-ui, sans-serif);
+          color: #fff;
+        }
+        /* BG decorations */
+        .js-bg-grid {
+          position: absolute; inset: 0; pointer-events: none; z-index: 0;
+          background-image:
+            linear-gradient(rgba(99,102,241,0.055) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(99,102,241,0.055) 1px, transparent 1px);
+          background-size: 60px 60px;
+        }
+        .js-bg-orb {
+          position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none; z-index: 0;
+        }
+        /* Left panel */
+        .js-left {
+          position: relative; z-index: 10;
+          width: 46%; max-width: 500px;
+          display: flex; flex-direction: column; justify-content: center;
+          padding: 60px 56px;
+          border-right: 1px solid rgba(255,255,255,0.06);
+          background: rgba(255,255,255,0.012);
+        }
+        .js-logo-row {
+          display: flex; align-items: center; gap: 12px; margin-bottom: 52px;
+        }
+        .js-logo-icon {
+          width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0;
+          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          display: flex; align-items: center; justify-content: center;
+          box-shadow: 0 0 0 1px rgba(99,102,241,0.4), 0 8px 24px rgba(99,102,241,0.35);
+          position: relative; overflow: hidden;
+        }
+        .js-logo-icon::after {
+          content: ''; position: absolute; inset: 0;
+          background: linear-gradient(135deg, rgba(255,255,255,0.22) 0%, transparent 60%);
+        }
+        .js-logo-text {
+          font-size: 20px; font-weight: 800; letter-spacing: -0.5px;
+          background: linear-gradient(135deg, #fff 55%, #c7d2fe);
+          -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .js-logo-badge {
+          font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+          padding: 2px 7px; border-radius: 20px; color: #a5b4fc;
+          background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.3);
+        }
+        .js-tagline {
+          font-size: clamp(26px, 3vw, 38px); font-weight: 800; letter-spacing: -1.5px;
+          line-height: 1.1; margin: 0 0 18px;
+          background: linear-gradient(135deg, #fff 50%, #c7d2fe);
+          -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .js-sub {
+          font-size: 14.5px; color: rgba(255,255,255,0.42); line-height: 1.75;
+          margin: 0 0 52px; max-width: 340px;
+        }
+        .js-hints { display: flex; flex-direction: column; gap: 14px; }
+        .js-hint {
+          display: flex; align-items: center; gap: 12px;
+          font-size: 13.5px; color: rgba(255,255,255,0.5);
+        }
+        .js-hint-icon {
+          width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+          background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.18);
+          display: flex; align-items: center; justify-content: center; font-size: 16px;
+        }
+        .js-status-bar {
+          margin-top: auto; padding-top: 40px;
+          display: flex; align-items: center; gap: 8px;
+          font-size: 12px; color: rgba(255,255,255,0.28);
+        }
+        .js-status-dot {
+          width: 6px; height: 6px; border-radius: 50%; background: #22c55e;
+          animation: js-ping 1.8s ease-in-out infinite;
+        }
+        @keyframes js-ping {
+          0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.5); }
+          50% { box-shadow: 0 0 0 5px rgba(34,197,94,0); }
+        }
+
+        /* Right panel */
+        .js-right {
+          flex: 1; position: relative; z-index: 10;
+          display: flex; flex-direction: column; justify-content: center;
+          padding: 60px 52px; overflow-y: auto;
+        }
+        .js-form-title {
+          font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.6);
+          text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 28px;
+        }
+        /* Username field */
+        .js-field { margin-bottom: 28px; }
+        .js-label {
+          display: block; font-size: 12px; font-weight: 600;
+          color: rgba(255,255,255,0.5); text-transform: uppercase;
+          letter-spacing: 0.08em; margin-bottom: 10px;
+        }
+        .js-input-wrap { position: relative; }
+        .js-input-icon {
+          position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+          color: rgba(255,255,255,0.25); pointer-events: none;
+        }
+        .js-input {
+          width: 100%; box-sizing: border-box;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 12px; padding: 14px 14px 14px 44px;
+          font-size: 15px; color: white; font-family: inherit;
+          outline: none; transition: all 0.2s ease;
+        }
+        .js-input::placeholder { color: rgba(255,255,255,0.22); }
+        .js-input:focus {
+          border-color: rgba(99,102,241,0.5);
+          background: rgba(99,102,241,0.05);
+          box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+        }
+        .js-char-count {
+          position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+          font-size: 11px; color: rgba(255,255,255,0.22); font-family: monospace; pointer-events: none;
+        }
+
+        /* Map cards grid */
+        .js-map-label {
+          display: block; font-size: 12px; font-weight: 600;
+          color: rgba(255,255,255,0.5); text-transform: uppercase;
+          letter-spacing: 0.08em; margin-bottom: 12px;
+        }
+        .js-map-grid {
+          display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+          gap: 10px; margin-bottom: 28px;
+        }
+        .js-map-card {
+          background: rgba(255,255,255,0.03);
+          border: 1.5px solid rgba(255,255,255,0.07);
+          border-radius: 13px; padding: 14px 14px 13px;
+          cursor: pointer; transition: all 0.2s ease;
+          display: flex; flex-direction: column; gap: 8px;
+          position: relative; overflow: hidden;
+          outline: none;
+        }
+        .js-map-card::before {
+          content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+          border-radius: 13px 13px 0 0; opacity: 0; transition: opacity 0.2s;
+        }
+        .js-map-card:hover {
+          background: rgba(255,255,255,0.055); border-color: rgba(255,255,255,0.15);
+          transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+        .js-map-card:hover::before { opacity: 1; }
+        .js-map-card.selected { transform: translateY(-2px); }
+        .js-map-card.selected::before { opacity: 1; }
+        .js-map-icon { font-size: 22px; line-height: 1; }
+        .js-map-name { font-size: 12.5px; font-weight: 700; color: white; letter-spacing: -0.2px; line-height: 1.3; }
+        .js-map-theme { font-size: 11px; color: rgba(255,255,255,0.35); }
+        .js-map-check {
+          position: absolute; top: 9px; right: 9px;
+          width: 18px; height: 18px; border-radius: 5px;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 10px; font-weight: 700;
+        }
+
+        /* Submit button */
+        .js-submit {
+          width: 100%; padding: 16px 24px;
+          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          border: none; border-radius: 14px;
+          color: white; font-size: 15.5px; font-weight: 700;
+          cursor: pointer; font-family: inherit; letter-spacing: -0.2px;
+          box-shadow: 0 8px 32px rgba(99,102,241,0.38), inset 0 1px 0 rgba(255,255,255,0.18);
+          transition: all 0.22s ease; position: relative; overflow: hidden;
+          display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .js-submit::before {
+          content: ''; position: absolute; inset: 0;
+          background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 55%);
+        }
+        .js-submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 14px 44px rgba(99,102,241,0.5); }
+        .js-submit:active:not(:disabled) { transform: translateY(0); }
+        .js-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* Mobile: stack panels */
+        @media (max-width: 768px) {
+          .js-root { flex-direction: column; }
+          .js-left {
+            width: 100%; max-width: 100%; padding: 32px 24px 24px;
+            border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06);
+          }
+          .js-logo-row { margin-bottom: 0; }
+          .js-tagline, .js-sub, .js-hints { display: none; }
+          .js-status-bar { padding-top: 0; margin-top: 12px; }
+          .js-right { padding: 28px 24px 48px; }
+          .js-map-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+      `}</style>
+
+      <div className="js-root">
+        {/* Background */}
+        <div className="js-bg-grid" aria-hidden />
+        <div className="js-bg-orb" style={{ width: 600, height: 600, top: -200, left: -200, background: "radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 65%)" }} aria-hidden />
+        <div className="js-bg-orb" style={{ width: 500, height: 500, bottom: -200, right: -100, background: "radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 65%)" }} aria-hidden />
+
+        {/* ── Left panel ── */}
+        <aside className="js-left" aria-label="VirtualVerse introduction">
+          <div className="js-logo-row" style={fi(0)}>
+            <div className="js-logo-icon" aria-hidden>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                <path d="M2 12h20"/>
               </svg>
             </div>
-            <span className="text-2xl font-bold text-white tracking-tight">
-              VirtualVerse
-            </span>
+            <span className="js-logo-text">VirtualVerse</span>
+            <span className="js-logo-badge">Beta</span>
           </div>
-          <p className="text-zinc-400 text-xs font-sans">
-            Spatial 2D Multiplayer Metaverse &amp; Real-Time Proximity Communication
+
+          <h2 className="js-tagline" style={fi(0.08)}>
+            Your Space.<br />Your People.
+          </h2>
+          <p className="js-sub" style={fi(0.16)}>
+            Walk freely in a 2D world, video-call the moment you approach someone,
+            and collaborate as if you&apos;re in the same room.
           </p>
-        </div>
 
-        {/* Join form */}
-        <form onSubmit={onJoin} className="space-y-4">
-          <div>
-            <label htmlFor="username-input" className="block text-xs font-medium text-zinc-300 mb-1.5">
-              Avatar Username
-            </label>
-            <input
-              id="username-input"
-              type="text"
-              value={usernameValue}
-              onChange={(e) => onUsernameChange(e.target.value)}
-              placeholder="Enter your display name..."
-              maxLength={24}
-              autoFocus
-              className="w-full bg-white/5 border border-white/10 rounded-xl
-                         text-white placeholder:text-zinc-500 text-sm px-4 py-3
-                         focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                         transition-all"
-            />
+          <div className="js-hints" role="list" aria-label="Game controls and features">
+            {FEATURE_HINTS.map((h, i) => (
+              <div key={h.text} className="js-hint" role="listitem" style={fi(0.22 + i * 0.07)}>
+                <div className="js-hint-icon" aria-hidden>{h.icon}</div>
+                <span>{h.text}</span>
+              </div>
+            ))}
           </div>
 
-          <div>
-            <label htmlFor="map-select" className="block text-xs font-medium text-zinc-300 mb-1.5">
-              Select Map Preset Environment
-            </label>
-            <div className="relative">
-              <select
-                id="map-select"
-                value={selectedMapData.id || selectedMapData.name}
-                onChange={(e) => {
-                  const target = presets.find(
-                    (p) => p.id === e.target.value || p.name === e.target.value
-                  );
-                  if (target) onSelectMap(target);
-                }}
-                className="w-full bg-white/5 border border-white/10 rounded-xl
-                           text-white text-sm px-4 py-3 pr-10 appearance-none
-                           focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                           transition-all cursor-pointer font-sans"
+          <div className="js-status-bar" style={fi(0.55)} aria-label={`Server status: ${serverHost}`}>
+            <span className="js-status-dot" aria-hidden />
+            <span>Connected to <strong style={{ color: "rgba(255,255,255,0.5)", fontFamily: "monospace", fontSize: 11 }}>{serverHost}</strong></span>
+          </div>
+        </aside>
+
+        {/* ── Right panel ── */}
+        <main className="js-right" aria-label="Enter VirtualVerse">
+          <p className="js-form-title" style={fi(0)}>Configure your entry</p>
+
+          <form onSubmit={onJoin} noValidate>
+            {/* Username */}
+            <div className="js-field" style={fi(0.08)}>
+              <label htmlFor="username-input" className="js-label">Avatar Username</label>
+              <div className="js-input-wrap">
+                <span className="js-input-icon" aria-hidden>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </span>
+                <input
+                  id="username-input"
+                  className="js-input"
+                  type="text"
+                  value={usernameValue}
+                  onChange={(e) => onUsernameChange(e.target.value)}
+                  placeholder="Enter your display name…"
+                  maxLength={24}
+                  autoFocus
+                  autoComplete="nickname"
+                  aria-describedby="username-hint"
+                  aria-label="Avatar display name"
+                />
+                <span className="js-char-count" aria-hidden>
+                  {usernameValue.length}/24
+                </span>
+              </div>
+              <span id="username-hint" style={{ display: "none" }}>Your name appears above your avatar in the world</span>
+            </div>
+
+            {/* Map selector */}
+            <div style={fi(0.16)}>
+              <label className="js-map-label">Choose Your World</label>
+              <div
+                className="js-map-grid"
+                role="radiogroup"
+                aria-label="Select map environment"
               >
-                {presets.map((preset) => (
-                  <option
-                    key={preset.id || preset.name}
-                    value={preset.id || preset.name}
-                    className="bg-[#0f172a] text-white"
-                  >
-                    {preset.name} ({preset.theme || "Spatial Map"})
-                  </option>
-                ))}
-              </select>
-              <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                {presets.map((preset, i) => {
+                  const accent = MAP_ACCENTS[i % MAP_ACCENTS.length];
+                  const isSelected = (preset.id || preset.name) === (selectedMapData.id || selectedMapData.name);
+                  return (
+                    <button
+                      key={preset.id || preset.name}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      className={`js-map-card${isSelected ? " selected" : ""}`}
+                      onClick={() => onSelectMap(preset)}
+                      style={{
+                        borderColor: isSelected ? accent + "60" : undefined,
+                        background: isSelected ? accent + "10" : undefined,
+                        boxShadow: isSelected ? `0 0 0 1px ${accent}30, 0 8px 24px rgba(0,0,0,0.3)` : undefined,
+                      }}
+                      aria-label={`${preset.name} – ${preset.theme || "Spatial Map"}`}
+                    >
+                      <style>{`.js-map-card.selected .js-map-card-before-${i},.js-map-card:hover .js-map-card-before-${i}{opacity:1}`}</style>
+                      {/* Top accent bar via inline style trick */}
+                      <div style={{
+                        position: "absolute", top: 0, left: 0, right: 0, height: 2,
+                        borderRadius: "13px 13px 0 0",
+                        background: `linear-gradient(90deg, ${accent}, ${accent}80)`,
+                        opacity: isSelected ? 1 : 0,
+                        transition: "opacity 0.2s",
+                      }} aria-hidden />
+
+                      <span className="js-map-icon" aria-hidden>{getMapIcon(preset)}</span>
+                      <span className="js-map-name">{preset.name}</span>
+                      <span className="js-map-theme">{preset.theme || "Spatial Map"}</span>
+
+                      {isSelected && (
+                        <div
+                          className="js-map-check"
+                          style={{ background: accent, color: "white" }}
+                          aria-hidden
+                        >
+                          ✓
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          </div>
 
-          <button
-            id="join-btn"
-            type="submit"
-            disabled={!usernameValue.trim()}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40
-                       disabled:cursor-not-allowed text-white font-semibold py-3 px-4
-                       rounded-xl transition-all text-sm shadow-lg shadow-indigo-600/20 mt-2"
-          >
-            Enter Virtual World
-          </button>
-        </form>
-
-        <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-between text-xs text-zinc-500">
-          <span>Server Status</span>
-          <span className="font-mono text-zinc-300 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            {process.env.NEXT_PUBLIC_WS_URL
-              ? new URL(process.env.NEXT_PUBLIC_WS_URL).hostname
-              : "Online"}
-          </span>
-        </div>
+            {/* Submit */}
+            <div style={fi(0.25)}>
+              <button
+                id="join-btn"
+                type="submit"
+                className="js-submit"
+                disabled={!usernameValue.trim()}
+                aria-label={usernameValue.trim() ? `Enter VirtualVerse as ${usernameValue}` : "Enter a username to continue"}
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+                Enter {selectedMapData.name}
+              </button>
+              <p style={{ textAlign: "center", marginTop: 14, fontSize: 11.5, color: "rgba(255,255,255,0.22)" }}>
+                No sign-up required · Works in any modern browser
+              </p>
+            </div>
+          </form>
+        </main>
       </div>
-    </div>
+    </>
   );
 }

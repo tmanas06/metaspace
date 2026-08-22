@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #060612;
+  --foreground: #ffffff;
 }
 
 @theme inline {
@@ -14,17 +14,22 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #060612;
+    --foreground: #ffffff;
   }
 }
 
-html,
-body {
+html {
   height: 100%;
-  /* Use 100dvh (dynamic viewport height) so mobile browser chrome is accounted for */
+}
+
+body {
   min-height: 100dvh;
-  overflow: hidden;
+  /* overflow is intentionally NOT hidden here so the landing page can scroll.
+     The VirtualWorld component uses position:fixed;inset:0 and manages its own
+     overflow containment once the user enters the world. */
+  overflow-x: hidden;
+  overflow-y: auto;
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
