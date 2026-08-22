@@ -125,7 +125,9 @@ export function VirtualWorld() {
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputUsername.trim()) return;
-    setUsername(inputUsername.trim());
+    const trimmed = inputUsername.trim();
+    gameBridge.setLocalUsername(trimmed);  // tell Phaser scene the player's name before it starts
+    setUsername(trimmed);
     setJoined(true);
   };
 

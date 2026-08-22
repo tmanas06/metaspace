@@ -47,6 +47,9 @@ class GameBridge {
   // Phaser's update() reads this every frame alongside keyboard input.
   private touchInput: BooleanInput = { left: false, right: false, up: false, down: false };
 
+  // Local player username — set by React before Phaser scene starts
+  private localUsername = "Player";
+
   /** Called by the React MobileJoystick to drive movement from touch. */
   setTouchInput(input: BooleanInput) {
     this.touchInput = input;
@@ -55,6 +58,16 @@ class GameBridge {
   /** Called by Phaser's update() to merge touch + keyboard input. */
   getTouchInput(): BooleanInput {
     return this.touchInput;
+  }
+
+  /** Called by React (VirtualWorld) before the game starts so the avatar knows the player name. */
+  setLocalUsername(name: string) {
+    this.localUsername = name;
+  }
+
+  /** Called by MainScene to retrieve the local player name for avatar color / label. */
+  getLocalUsername(): string {
+    return this.localUsername;
   }
 
   // Called by Phaser when local player presses keys
