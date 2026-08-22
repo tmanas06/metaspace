@@ -28,7 +28,7 @@ const SPEED = 160;
 
 const AV_W = 32;           // avatar frame width
 const AV_H = 48;           // avatar frame height
-const AV_SCALE = 1.8;      // display scale (1.8× = ~58×86 on screen)
+const AV_SCALE = 1.2;      // display scale — smaller = more map visible
 const WALK_FRAMES = 3;     // frames per direction: 0=idle, 1=step-L, 2=step-R
 const AV_DIRS = ["down", "left", "right", "up"] as const;
 type Direction = (typeof AV_DIRS)[number];
@@ -988,8 +988,11 @@ export class MainScene extends Phaser.Scene {
   private applyAutoZoom(W: number, H: number): void {
     const cW = this.scale.width, cH = this.scale.height;
     if (!cW || !cH) return;
-    const zoom = Math.max(cW / W, cH / H);
-    this.cameras.main.setZoom(Math.max(zoom, 0.6));
+    // "Fit" zoom: shrink until the entire world is visible in the viewport
+    // Multiply by 0.82 for comfortable breathing room around the map edges.
+    // Clamped so tiny maps don't over-zoom and huge maps stay legible.
+    const fitZoom = Math.min(cW / W, cH / H) * 0.82;
+    this.cameras.main.setZoom(Phaser.Math.Clamp(fitZoom, 0.35, 1.0));
     this.cameras.main.setViewport(0, 0, cW, cH);
   }
 
