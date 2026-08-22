@@ -1,6 +1,7 @@
 /**
  * REST API client for VirtualVerse backend.
- * Map schema extended with trees, outdoor areas, floor patterns, and richer furniture types.
+ * Map schema extended with trees, outdoor areas, floor patterns, and rich furniture types.
+ * Maps expanded into sprawling, large multi-room spaces (2240x1600px) with halls, stages, wings & courtyards.
  */
 
 export interface MapZone {
@@ -36,7 +37,8 @@ export interface MapFurniture {
   id: string;
   name: string;
   /** desk | chair | monitor | plant | sofa | table | board | podium |
-   *  bookshelf | bar | fountain | dj | reactor | console | bench | rug */
+   *  bookshelf | bar | fountain | dj | reactor | console | bench | rug |
+   *  arcade | server | booth */
   type: string;
   x: number;
   y: number;
@@ -78,207 +80,272 @@ export interface MapPresetData {
 
 export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
 
-  // ── 1. Startup Office ──────────────────────────────────────────────────────
+  // ── 1. Startup Office & Tech Campus ────────────────────────────────────────
   {
     id: "startup_office",
-    name: "Startup Office",
-    theme: "Modern Coworking",
-    description: "Open-plan coworking office with desk pods, boardroom, coffee lounge, and a rooftop garden fringe.",
-    width: 960,
-    height: 832,
+    name: "Startup HQ & Tech Campus",
+    theme: "Sprawling Coworking HQ",
+    description: "Expansive tech campus with grand entrance atrium, central hall, auditorium stage, engineering squad pods, design studio, boardroom, cafeteria, game lounge & sakura garden.",
+    width: 2240,
+    height: 1600,
     tileSize: 32,
     style: {
       floorType: "tile",
-      floorColor: "#f0ece3",  // warm light tile
-      wallColor: "#c7bfb0",
-      gridColor: "#ddd6cb",
-      accentColor: "#6366f1",
-      outsideColor: "#8dbf7a",  // grass fringe
+      floorColor: "#f1f5f9",  // slate tile
+      wallColor: "#94a3b8",
+      gridColor: "#cbd5e1",
+      accentColor: "#4f46e5",
+      outsideColor: "#475569", // sleek dark border
     },
-    spawnPoint: { x: 480, y: 700 },
+    spawnPoint: { x: 1120, y: 1380 },
 
     zones: [
-      // Left wing — engineering pods
-      { id: "eng", name: "Engineering",    x: 60,  y: 80,  width: 280, height: 260, color: "#c7d2fe", floorType: "carpet", isPrivate: true },
-      // Right wing — design
-      { id: "design", name: "Design",      x: 400, y: 80,  width: 280, height: 260, color: "#fbcfe8", floorType: "carpet", isPrivate: true },
-      // Centre — boardroom
-      { id: "board", name: "Boardroom",    x: 700, y: 80,  width: 200, height: 260, color: "#bfdbfe", floorType: "wood", isPrivate: true },
-      // Bottom — lounge
-      { id: "lounge", name: "Break Room",  x: 60,  y: 420, width: 840, height: 200, color: "#d1fae5", floorType: "wood", isPrivate: false },
-      // Outdoor fringe top
-      { id: "outdoor_top", name: "Rooftop Garden", x: 60, y: 640, width: 840, height: 140, color: "#86efac", isPrivate: false, isOutdoor: true },
+      // ── Central Thoroughfare ──
+      { id: "lobby",        name: "Welcome Lobby & Reception", x: 800,  y: 1160, width: 640, height: 380, color: "#cbd5e1", floorType: "tile",   isPrivate: false },
+      { id: "atrium_hall",   name: "Grand Central Atrium",      x: 800,  y: 440,  width: 640, height: 680, color: "#e2e8f0", floorType: "wood",   isPrivate: false },
+
+      // ── North Wing ──
+      { id: "auditorium",   name: "Townhall Auditorium Stage", x: 800,  y: 60,   width: 640, height: 340, color: "#f59e0b", floorType: "carpet", isPrivate: false },
+
+      // ── West Wing (Tech & Strategy) ──
+      { id: "eng_squad",    name: "Frontend & Cloud Squad",    x: 60,   y: 60,   width: 700, height: 480, color: "#818cf8", floorType: "carpet", isPrivate: true },
+      { id: "ai_lab",       name: "AI & Server Research Lab",   x: 60,   y: 580,  width: 700, height: 440, color: "#38bdf8", floorType: "metal",  isPrivate: true },
+      { id: "boardroom",    name: "Executive Boardroom Suite", x: 60,   y: 1060, width: 700, height: 480, color: "#6366f1", floorType: "wood",   isPrivate: true },
+
+      // ── East Wing (Creative & Social) ──
+      { id: "design_studio",name: "UI/UX & Creative Studio",    x: 1480, y: 60,   width: 700, height: 480, color: "#f472b6", floorType: "carpet", isPrivate: true },
+      { id: "cafeteria",    name: "Bistro & Coffee Lounge",    x: 1480, y: 580,  width: 700, height: 440, color: "#34d399", floorType: "wood",   isPrivate: false },
+      { id: "game_lounge",  name: "Rec Room & Arcade Lounge",  x: 1480, y: 1060, width: 700, height: 480, color: "#a855f7", floorType: "neon_tile", isPrivate: false },
+
+      // ── Outdoor Garden Courtyard ──
+      { id: "courtyard",    name: "Sakura Zen Courtyard",      x: 800,  y: 1160, width: 0,   height: 0,   color: "#4ade80", floorType: "grass",  isOutdoor: true },
     ],
 
     obstacles: [
-      // outer walls
-      { x: 0,   y: 0,   width: 960, height: 48 },
-      { x: 0,   y: 784, width: 960, height: 48 },
-      { x: 0,   y: 0,   width: 48,  height: 832 },
-      { x: 912, y: 0,   width: 48,  height: 832 },
-      // inner room walls (horizontal dividers)
-      { x: 48,  y: 360, width: 864, height: 20 },
-      { x: 48,  y: 630, width: 864, height: 18 },
-      // vertical dividers
-      { x: 350, y: 48,  width: 18,  height: 312 },
-      { x: 690, y: 48,  width: 18,  height: 312 },
+      // Perimeter Walls
+      { x: 0,    y: 0,    width: 2240, height: 48 },
+      { x: 0,    y: 1552, width: 2240, height: 48 },
+      { x: 0,    y: 0,    width: 48,   height: 1600 },
+      { x: 2192, y: 0,    width: 48,   height: 1600 },
+
+      // West Wing Wall Dividers
+      { x: 760,  y: 48,   width: 20,   height: 1504 },
+      { x: 48,   y: 550,  width: 712,  height: 20 },
+      { x: 48,   y: 1030, width: 712,  height: 20 },
+
+      // East Wing Wall Dividers
+      { x: 1460, y: 48,   width: 20,   height: 1504 },
+      { x: 1480, y: 550,  width: 712,  height: 20 },
+      { x: 1480, y: 1030, width: 712,  height: 20 },
+
+      // Hallway Passageway Walls (with doors/archways left open)
+      { x: 760,  y: 390,  width: 720,  height: 20 },
     ],
 
     furniture: [
-      // Engineering desks (3 L-shape clusters)
-      { id: "eng_d1", name: "Dev Desk",    type: "desk",     x: 80,  y: 110, width: 70, height: 45, color: "#cbd5e1", collides: true },
-      { id: "eng_m1", name: "Monitor",     type: "monitor",  x: 82,  y: 112, width: 28, height: 18, color: "#1e293b", collides: false },
-      { id: "eng_c1", name: "Chair",       type: "chair",    x: 100, y: 155, width: 32, height: 28, color: "#818cf8", collides: false },
-      { id: "eng_d2", name: "Dev Desk",    type: "desk",     x: 180, y: 110, width: 70, height: 45, color: "#cbd5e1", collides: true },
-      { id: "eng_m2", name: "Monitor",     type: "monitor",  x: 182, y: 112, width: 28, height: 18, color: "#1e293b", collides: false },
-      { id: "eng_c2", name: "Chair",       type: "chair",    x: 200, y: 155, width: 32, height: 28, color: "#818cf8", collides: false },
-      { id: "eng_d3", name: "Dev Desk",    type: "desk",     x: 80,  y: 240, width: 70, height: 45, color: "#cbd5e1", collides: true },
-      { id: "eng_m3", name: "Monitor",     type: "monitor",  x: 82,  y: 242, width: 28, height: 18, color: "#1e293b", collides: false },
-      { id: "eng_c3", name: "Chair",       type: "chair",    x: 100, y: 285, width: 32, height: 28, color: "#818cf8", collides: false },
-      { id: "eng_plant", name: "Plant",    type: "plant",    x: 290, y: 100, width: 28, height: 40, color: "#22c55e", collides: false },
+      // ── 1. Welcome Lobby & Reception ──
+      { id: "rec_desk",   name: "Reception Counter", type: "desk",    x: 1040, y: 1220, width: 160, height: 60, color: "#6366f1", collides: true, label: "Reception" },
+      { id: "rec_mon",    name: "Monitor",           type: "monitor", x: 1100, y: 1225, width: 40,  height: 20, color: "#1e293b" },
+      { id: "rec_chair",  name: "Chair",             type: "chair",   x: 1100, y: 1285, width: 40,  height: 30, color: "#4f46e5" },
+      { id: "rec_rug",    name: "Welcome Rug",       type: "rug",     x: 980,  y: 1350, width: 280, height: 120, color: "#818cf8" },
+      { id: "rec_fount",  name: "Plaza Fountain",    type: "fountain",x: 850,  y: 1240, width: 90,  height: 90, color: "#38bdf8", collides: true, label: "Fountain" },
+      { id: "rec_p1",     name: "Lobby Plant",       type: "plant",   x: 1400, y: 1200, width: 32,  height: 45, color: "#22c55e" },
+      { id: "rec_p2",     name: "Lobby Plant",       type: "plant",   x: 810,  y: 1200, width: 32,  height: 45, color: "#22c55e" },
 
-      // Design desks
-      { id: "dsg_d1", name: "Design Desk", type: "desk",    x: 420, y: 110, width: 70, height: 45, color: "#fce7f3", collides: true },
-      { id: "dsg_m1", name: "Monitor",     type: "monitor", x: 422, y: 112, width: 28, height: 18, color: "#1e293b", collides: false },
-      { id: "dsg_c1", name: "Chair",       type: "chair",   x: 440, y: 155, width: 32, height: 28, color: "#f9a8d4", collides: false },
-      { id: "dsg_d2", name: "Design Desk", type: "desk",    x: 520, y: 110, width: 70, height: 45, color: "#fce7f3", collides: true },
-      { id: "dsg_m2", name: "Monitor",     type: "monitor", x: 522, y: 112, width: 28, height: 18, color: "#1e293b", collides: false },
-      { id: "dsg_c2", name: "Chair",       type: "chair",   x: 540, y: 155, width: 32, height: 28, color: "#f9a8d4", collides: false },
-      { id: "dsg_d3", name: "Design Desk", type: "desk",    x: 420, y: 230, width: 120, height: 45, color: "#fce7f3", collides: true },
-      { id: "dsg_c3", name: "Chair",       type: "chair",   x: 450, y: 275, width: 32, height: 28, color: "#f9a8d4", collides: false },
-      { id: "dsg_plant","name":"Plant",    type: "plant",   x: 630, y: 100, width: 28, height: 40, color: "#22c55e", collides: false },
+      // ── 2. Auditorium & Stage ──
+      { id: "aud_screen", name: "Main LED Screen",   type: "board",   x: 940,  y: 75,   width: 360, height: 24, color: "#fbbf24", collides: true, label: "Presentation LED Screen" },
+      { id: "aud_podium", name: "Speaker Podium",    type: "podium",  x: 1100, y: 130,  width: 80,  height: 50, color: "#f59e0b", collides: true, label: "Podium" },
+      // Auditorium Seats Row 1
+      { id: "aud_s1",     name: "Auditorium Seat",   type: "chair",   x: 880,  y: 220,  width: 50,  height: 35, color: "#d97706" },
+      { id: "aud_s2",     name: "Auditorium Seat",   type: "chair",   x: 950,  y: 220,  width: 50,  height: 35, color: "#d97706" },
+      { id: "aud_s3",     name: "Auditorium Seat",   type: "chair",   x: 1020, y: 220,  width: 50,  height: 35, color: "#d97706" },
+      { id: "aud_s4",     name: "Auditorium Seat",   type: "chair",   x: 1170, y: 220,  width: 50,  height: 35, color: "#d97706" },
+      { id: "aud_s5",     name: "Auditorium Seat",   type: "chair",   x: 1240, y: 220,  width: 50,  height: 35, color: "#d97706" },
+      { id: "aud_s6",     name: "Auditorium Seat",   type: "chair",   x: 1310, y: 220,  width: 50,  height: 35, color: "#d97706" },
+      // Auditorium Seats Row 2
+      { id: "aud_s7",     name: "Auditorium Seat",   type: "chair",   x: 880,  y: 280,  width: 50,  height: 35, color: "#b45309" },
+      { id: "aud_s8",     name: "Auditorium Seat",   type: "chair",   x: 950,  y: 280,  width: 50,  height: 35, color: "#b45309" },
+      { id: "aud_s9",     name: "Auditorium Seat",   type: "chair",   x: 1020, y: 280,  width: 50,  height: 35, color: "#b45309" },
+      { id: "aud_s10",    name: "Auditorium Seat",   type: "chair",   x: 1170, y: 280,  width: 50,  height: 35, color: "#b45309" },
+      { id: "aud_s11",    name: "Auditorium Seat",   type: "chair",   x: 1240, y: 280,  width: 50,  height: 35, color: "#b45309" },
+      { id: "aud_s12",    name: "Auditorium Seat",   type: "chair",   x: 1310, y: 280,  width: 50,  height: 35, color: "#b45309" },
 
-      // Boardroom
-      { id: "br_table","name":"Conf Table", type: "table",  x: 715, y: 130, width: 170, height: 90, color: "#b0cae8", collides: true, label: "Boardroom" },
-      { id: "br_c1",  name: "Chair",        type: "chair",  x: 720, y: 115, width: 28, height: 22, color: "#93c5fd", collides: false },
-      { id: "br_c2",  name: "Chair",        type: "chair",  x: 758, y: 115, width: 28, height: 22, color: "#93c5fd", collides: false },
-      { id: "br_c3",  name: "Chair",        type: "chair",  x: 796, y: 115, width: 28, height: 22, color: "#93c5fd", collides: false },
-      { id: "br_c4",  name: "Chair",        type: "chair",  x: 834, y: 115, width: 28, height: 22, color: "#93c5fd", collides: false },
-      { id: "br_screen","name":"Screen",    type: "board",  x: 715, y: 235, width: 170, height: 16, color: "#1e40af", collides: true, label: "Presentation" },
+      // ── 3. Engineering & Tech Wing ──
+      // Dev Pod A
+      { id: "eng_d1",     name: "Dev Desk A1",       type: "desk",    x: 100,  y: 120,  width: 85,  height: 50, color: "#94a3b8", collides: true, label: "Dev Desk A" },
+      { id: "eng_m1",     name: "Monitor",           type: "monitor", x: 105,  y: 122,  width: 32,  height: 20, color: "#1e293b" },
+      { id: "eng_c1",     name: "Chair",             type: "chair",   x: 125,  y: 175,  width: 35,  height: 30, color: "#6366f1" },
+      { id: "eng_d2",     name: "Dev Desk A2",       type: "desk",    x: 220,  y: 120,  width: 85,  height: 50, color: "#94a3b8", collides: true, label: "Dev Desk B" },
+      { id: "eng_m2",     name: "Monitor",           type: "monitor", x: 225,  y: 122,  width: 32,  height: 20, color: "#1e293b" },
+      { id: "eng_c2",     name: "Chair",             type: "chair",   x: 245,  y: 175,  width: 35,  height: 30, color: "#6366f1" },
 
-      // Lounge / break room
-      { id: "sofa1",  name: "Sofa",         type: "sofa",   x: 80,  y: 450, width: 110, height: 55, color: "#86efac", collides: true },
-      { id: "sofa2",  name: "Sofa",         type: "sofa",   x: 230, y: 450, width: 110, height: 55, color: "#86efac", collides: true },
-      { id: "ctable", name: "Coffee Table", type: "table",  x: 130, y: 515, width: 60,  height: 40, color: "#a3e635", collides: false },
-      { id: "ping",   name: "Ping Pong",    type: "table",  x: 450, y: 445, width: 100, height: 55, color: "#4ade80", collides: true, label: "Ping Pong" },
-      { id: "fridge", name: "Fridge",       type: "bookshelf", x: 800, y: 430, width: 45, height: 70, color: "#e2e8f0", collides: true, label: "Fridge" },
-      { id: "coffee", name: "Coffee Bar",   type: "bar",    x: 700, y: 435, width: 90,  height: 35, color: "#92400e", collides: true, label: "Coffee" },
-      { id: "rug1",   name: "Rug",          type: "rug",    x: 100, y: 455, width: 260, height: 130, color: "#fde68a", collides: false },
+      // Dev Pod B
+      { id: "eng_d3",     name: "Dev Desk B1",       type: "desk",    x: 100,  y: 260,  width: 85,  height: 50, color: "#94a3b8", collides: true, label: "Ops Desk A" },
+      { id: "eng_m3",     name: "Monitor",           type: "monitor", x: 105,  y: 262,  width: 32,  height: 20, color: "#1e293b" },
+      { id: "eng_c3",     name: "Chair",             type: "chair",   x: 125,  y: 315,  width: 35,  height: 30, color: "#6366f1" },
+      { id: "eng_d4",     name: "Dev Desk B2",       type: "desk",    x: 220,  y: 260,  width: 85,  height: 50, color: "#94a3b8", collides: true, label: "Ops Desk B" },
+      { id: "eng_m4",     name: "Monitor",           type: "monitor", x: 225,  y: 262,  width: 32,  height: 20, color: "#1e293b" },
+      { id: "eng_c4",     name: "Chair",             type: "chair",   x: 245,  y: 315,  width: 35,  height: 30, color: "#6366f1" },
 
-      // Outdoor plants
-      { id: "out_p1", name: "Plant",        type: "plant",  x: 100, y: 665, width: 28, height: 40, color: "#4ade80", collides: false },
-      { id: "out_p2", name: "Plant",        type: "plant",  x: 250, y: 680, width: 28, height: 40, color: "#4ade80", collides: false },
-      { id: "out_bench1","name":"Bench",    type: "bench",  x: 400, y: 660, width: 70, height: 30, color: "#92400e", collides: false },
-      { id: "out_bench2","name":"Bench",    type: "bench",  x: 600, y: 660, width: 70, height: 30, color: "#92400e", collides: false },
+      // Cloud Pod
+      { id: "eng_d5",     name: "Cloud Desk C1",     type: "desk",    x: 420,  y: 120,  width: 90,  height: 50, color: "#cbd5e1", collides: true, label: "Cloud Desk" },
+      { id: "eng_c5",     name: "Chair",             type: "chair",   x: 445,  y: 175,  width: 35,  height: 30, color: "#4f46e5" },
+      { id: "eng_d6",     name: "Cloud Desk C2",     type: "desk",    x: 540,  y: 120,  width: 90,  height: 50, color: "#cbd5e1", collides: true, label: "Cloud Desk" },
+      { id: "eng_c6",     name: "Chair",             type: "chair",   x: 565,  y: 175,  width: 35,  height: 30, color: "#4f46e5" },
+
+      // AI Research & Server Room
+      { id: "ai_console", name: "AI GPU Cluster",    type: "console", x: 100,  y: 640,  width: 140, height: 60, color: "#38bdf8", collides: true, label: "GPU Workstation" },
+      { id: "srv_rack1",  name: "Server Rack 1",     type: "server",  x: 500,  y: 620,  width: 65,  height: 100, color: "#0f172a", collides: true, label: "Server A" },
+      { id: "srv_rack2",  name: "Server Rack 2",     type: "server",  x: 580,  y: 620,  width: 65,  height: 100, color: "#0f172a", collides: true, label: "Server B" },
+      { id: "ai_board",   name: "Glass AI Board",    type: "board",   x: 280,  y: 620,  width: 180, height: 20, color: "#0284c7", collides: true, label: "Glass Board" },
+
+      // ── 4. Executive Boardroom & Huddles ──
+      { id: "br_table",   name: "Conference Table",  type: "table",   x: 180,  y: 1140, width: 280, height: 130, color: "#4f46e5", collides: true, label: "Boardroom Table" },
+      { id: "br_c1",      name: "Exec Chair",        type: "chair",   x: 200,  y: 1105, width: 35,  height: 30, color: "#4338ca" },
+      { id: "br_c2",      name: "Exec Chair",        type: "chair",   x: 260,  y: 1105, width: 35,  height: 30, color: "#4338ca" },
+      { id: "br_c3",      name: "Exec Chair",        type: "chair",   x: 320,  y: 1105, width: 35,  height: 30, color: "#4338ca" },
+      { id: "br_c4",      name: "Exec Chair",        type: "chair",   x: 380,  y: 1105, width: 35,  height: 30, color: "#4338ca" },
+      { id: "br_c5",      name: "Exec Chair",        type: "chair",   x: 200,  y: 1275, width: 35,  height: 30, color: "#4338ca" },
+      { id: "br_c6",      name: "Exec Chair",        type: "chair",   x: 260,  y: 1275, width: 35,  height: 30, color: "#4338ca" },
+      { id: "br_c7",      name: "Exec Chair",        type: "chair",   x: 320,  y: 1275, width: 35,  height: 30, color: "#4338ca" },
+      { id: "br_c8",      name: "Exec Chair",        type: "chair",   x: 380,  y: 1275, width: 35,  height: 30, color: "#4338ca" },
+      { id: "br_board",   name: "Presentation Screen",type: "board",  x: 180,  y: 1080, width: 280, height: 20, color: "#3730a3", collides: true, label: "Presentation Board" },
+
+      // Phone Booths
+      { id: "booth_1",    name: "Phone Booth A",     type: "booth",   x: 550,  y: 1120, width: 60,  height: 70, color: "#6366f1", collides: true, label: "Booth 1" },
+      { id: "booth_2",    name: "Phone Booth B",     type: "booth",   x: 630,  y: 1120, width: 60,  height: 70, color: "#6366f1", collides: true, label: "Booth 2" },
+
+      // ── 5. Design & Product Studio ──
+      { id: "dsg_d1",     name: "Design Desk 1",     type: "desk",    x: 1520, y: 120,  width: 90,  height: 50, color: "#f472b6", collides: true, label: "Design Desk" },
+      { id: "dsg_m1",     name: "Monitor",           type: "monitor", x: 1525, y: 122,  width: 32,  height: 20, color: "#1e293b" },
+      { id: "dsg_c1",     name: "Chair",             type: "chair",   x: 1545, y: 175,  width: 35,  height: 30, color: "#db2777" },
+      { id: "dsg_d2",     name: "Design Desk 2",     type: "desk",    x: 1640, y: 120,  width: 90,  height: 50, color: "#f472b6", collides: true, label: "Design Desk" },
+      { id: "dsg_m2",     name: "Monitor",           type: "monitor", x: 1645, y: 122,  width: 32,  height: 20, color: "#1e293b" },
+      { id: "dsg_c2",     name: "Chair",             type: "chair",   x: 1665, y: 175,  width: 35,  height: 30, color: "#db2777" },
+      { id: "dsg_table",  name: "Strategy Table",    type: "table",   x: 1800, y: 140,  width: 220, height: 100, color: "#fbcfe8", collides: true, label: "Product Strategy Table" },
+      { id: "dsg_board",  name: "Moodboard",         type: "board",   x: 1800, y: 100,  width: 220, height: 20, color: "#f472b6", collides: true, label: "Design Moodboard" },
+
+      // ── 6. Cafeteria & Bistro ──
+      { id: "cafe_bar",   name: "Espresso Bar",      type: "bar",     x: 1520, y: 640,  width: 220, height: 50, color: "#92400e", collides: true, label: "Coffee Bar" },
+      { id: "cafe_fridge",name: "Kitchen Fridge",    type: "bookshelf",x: 1760,y: 630,  width: 60,  height: 80, color: "#e2e8f0", collides: true, label: "Fridge" },
+      { id: "cafe_t1",    name: "Dining Table 1",    type: "table",   x: 1540, y: 760,  width: 140, height: 80, color: "#34d399", collides: true, label: "Dining Table" },
+      { id: "cafe_t2",    name: "Dining Table 2",    type: "table",   x: 1740, y: 760,  width: 140, height: 80, color: "#34d399", collides: true, label: "Dining Table" },
+      { id: "cafe_p1",    name: "Cafeteria Plant",   type: "plant",   x: 2100, y: 620,  width: 35,  height: 45, color: "#10b981" },
+
+      // ── 7. Rec Room & Gaming Lounge ──
+      { id: "game_ping",  name: "Ping Pong",         type: "table",   x: 1540, y: 1140, width: 140, height: 80, color: "#10b981", collides: true, label: "Ping Pong" },
+      { id: "game_arc1",  name: "Arcade Cabinet A",  type: "arcade",  x: 1750, y: 1120, width: 65,  height: 85, color: "#f59e0b", collides: true, label: "Arcade 1" },
+      { id: "game_arc2",  name: "Arcade Cabinet B",  type: "arcade",  x: 1830, y: 1120, width: 65,  height: 85, color: "#ef4444", collides: true, label: "Arcade 2" },
+      { id: "game_sofa",  name: "Lounge Sofa",       type: "sofa",    x: 1940, y: 1140, width: 180, height: 75, color: "#a855f7", collides: true, label: "Lounge Sofa" },
+      { id: "game_dj",    name: "DJ Synthesizer",    type: "dj",      x: 1540, y: 1320, width: 180, height: 80, color: "#ec4899", collides: true, label: "DJ Stage Decks" },
     ],
 
     trees: [
-      { x: 140, y: 695, radius: 26, variant: 0 },
-      { x: 210, y: 720, radius: 20, variant: 1 },
-      { x: 330, y: 690, radius: 24, variant: 0 },
-      { x: 520, y: 700, radius: 22, variant: 2 },
-      { x: 700, y: 695, radius: 28, variant: 0 },
-      { x: 800, y: 715, radius: 20, variant: 1 },
-      { x: 870, y: 690, radius: 18, variant: 2 },
+      // Central Courtyard & Entrance Sakura Trees
+      { x: 740,  y: 1220, radius: 32, variant: 0 },
+      { x: 740,  y: 1360, radius: 28, variant: 1 },
+      { x: 1500, y: 1220, radius: 32, variant: 0 },
+      { x: 1500, y: 1360, radius: 28, variant: 1 },
+      { x: 1120, y: 1500, radius: 30, variant: 2 },
+      { x: 920,  y: 1500, radius: 26, variant: 0 },
+      { x: 1320, y: 1500, radius: 26, variant: 1 },
     ],
   },
 
-  // ── 2. Event Hall ──────────────────────────────────────────────────────────
+  // ── 2. Event Hall & Convention Center ──────────────────────────────────────
   {
     id: "event_hall",
-    name: "Event Hall",
-    theme: "Conference Auditorium",
-    description: "Grand auditorium with stage, VIP seating, networking foyer, and outdoor plaza.",
-    width: 960,
-    height: 832,
+    name: "Global Convention Center",
+    theme: "Auditorium & Expo Grounds",
+    description: "Massive auditorium hall with keynote stage, VIP suites, exhibition booths, and networking grounds.",
+    width: 2240,
+    height: 1600,
     tileSize: 32,
     style: {
       floorType: "carpet",
-      floorColor: "#312e81",
-      wallColor: "#1e1b4b",
-      gridColor: "#4338ca",
+      floorColor: "#1e1b4b",
+      wallColor: "#312e81",
+      gridColor: "#3730a3",
       accentColor: "#fbbf24",
-      outsideColor: "#1e1b4b",
+      outsideColor: "#0f172a",
     },
-    spawnPoint: { x: 480, y: 700 },
+    spawnPoint: { x: 1120, y: 1400 },
     zones: [
-      { id: "stage",      name: "Main Stage",       x: 200, y: 60,  width: 560, height: 180, color: "#d97706", floorType: "wood" },
-      { id: "vip",        name: "VIP Front Row",     x: 160, y: 270, width: 640, height: 140, color: "#4f46e5", isPrivate: true },
-      { id: "auditorium", name: "Auditorium Seats",  x: 80,  y: 430, width: 800, height: 240, color: "#3730a3" },
-      { id: "foyer",      name: "Networking Foyer",  x: 80,  y: 680, width: 800, height: 100, color: "#6366f1", isPrivate: false },
+      { id: "stage",      name: "Main Keynote Stage",     x: 640,  y: 60,   width: 960, height: 360, color: "#f59e0b", floorType: "wood",   isPrivate: false },
+      { id: "vip_suite",  name: "Executive VIP Suite",   x: 60,   y: 60,   width: 520, height: 360, color: "#6366f1", floorType: "carpet", isPrivate: true },
+      { id: "expo_hall",  name: "Exhibition Booths Bay",  x: 60,   y: 480,  width: 1040,height: 1020,color: "#4f46e5", floorType: "tile",   isPrivate: false },
+      { id: "foyer",      name: "Networking Foyer",       x: 1160, y: 480,  width: 1020,height: 520, color: "#4338ca", floorType: "carpet", isPrivate: false },
+      { id: "garden",     name: "Outdoor Expo Plaza",     x: 1160, y: 1060, width: 1020,height: 440, color: "#10b981", floorType: "grass",  isOutdoor: true },
     ],
     obstacles: [
-      { x: 0,   y: 0,   width: 960, height: 48 },
-      { x: 0,   y: 784, width: 960, height: 48 },
-      { x: 0,   y: 0,   width: 48,  height: 832 },
-      { x: 912, y: 0,   width: 48,  height: 832 },
+      { x: 0,    y: 0,    width: 2240, height: 48 },
+      { x: 0,    y: 1552, width: 2240, height: 48 },
+      { x: 0,    y: 0,    width: 48,   height: 1600 },
+      { x: 2192, y: 0,    width: 48,   height: 1600 },
+      { x: 600,  y: 48,   width: 20,   height: 372 },
+      { x: 1120, y: 480,  width: 20,   height: 1072 },
     ],
     furniture: [
-      { id: "screen",   name: "Main Screen",  type: "board",   x: 260, y: 65,  width: 440, height: 22, color: "#fbbf24", collides: true, label: "Main Screen" },
-      { id: "podium",   name: "Podium",       type: "podium",  x: 450, y: 140, width: 60,  height: 50, color: "#f59e0b", collides: true, label: "Podium" },
-      { id: "desk_l",   name: "Info Desk",    type: "desk",    x: 100, y: 700, width: 100, height: 45, color: "#6366f1", collides: true, label: "Info" },
-      { id: "desk_r",   name: "Info Desk",    type: "desk",    x: 760, y: 700, width: 100, height: 45, color: "#6366f1", collides: true },
-      { id: "plant_l",  name: "Plant",        type: "plant",   x: 70,  y: 65,  width: 28,  height: 40, color: "#22c55e", collides: false },
-      { id: "plant_r",  name: "Plant",        type: "plant",   x: 862, y: 65,  width: 28,  height: 40, color: "#22c55e", collides: false },
+      { id: "stage_screen",name: "Giant Keynote Screen",type: "board",   x: 820,  y: 80,   width: 600, height: 30, color: "#fbbf24", collides: true, label: "Main Keynote Screen" },
+      { id: "podium",     name: "Main Podium",          type: "podium",  x: 1080, y: 170,  width: 80,  height: 50, color: "#d97706", collides: true, label: "Keynote Podium" },
+      { id: "booth_1",    name: "Exhibitor Booth A",    type: "desk",    x: 120,  y: 560,  width: 180, height: 90, color: "#818cf8", collides: true, label: "Expo Booth A" },
+      { id: "booth_2",    name: "Exhibitor Booth B",    type: "desk",    x: 400,  y: 560,  width: 180, height: 90, color: "#818cf8", collides: true, label: "Expo Booth B" },
+      { id: "booth_3",    name: "Exhibitor Booth C",    type: "desk",    x: 680,  y: 560,  width: 180, height: 90, color: "#818cf8", collides: true, label: "Expo Booth C" },
+      { id: "foyer_bar",  name: "Cocktail Bar",         type: "bar",     x: 1300, y: 560,  width: 320, height: 60, color: "#fbbf24", collides: true, label: "Networking Bar" },
     ],
     trees: [
-      { x: 80,  y: 750, radius: 20, variant: 2 },
-      { x: 880, y: 750, radius: 20, variant: 2 },
+      { x: 1240, y: 1160, radius: 32, variant: 0 },
+      { x: 1400, y: 1160, radius: 28, variant: 1 },
+      { x: 1700, y: 1200, radius: 34, variant: 0 },
+      { x: 1900, y: 1240, radius: 28, variant: 2 },
     ],
   },
 
-  // ── 3. Zen Garden ──────────────────────────────────────────────────────────
+  // ── 3. Zen Garden Resort ──────────────────────────────────────────────────
   {
     id: "zen_garden",
-    name: "Zen Garden",
-    theme: "Nature & Beach",
-    description: "Serene outdoor garden with wooden pavilion, water pond, sandy beach, and lush greenery.",
-    width: 960,
-    height: 832,
+    name: "Zen Coastal Resort",
+    theme: "Nature & Ocean Beach",
+    description: "Serene coastal botanical garden with tea house pavilion, lotus pond, wooden footbridges & sandy beach.",
+    width: 2240,
+    height: 1600,
     tileSize: 32,
     style: {
       floorType: "grass",
-      floorColor: "#4ade80",
-      wallColor: "#16a34a",
-      gridColor: "#86efac",
+      floorColor: "#22c55e",
+      wallColor: "#15803d",
+      gridColor: "#4ade80",
       accentColor: "#f59e0b",
-      outsideColor: "#15803d",
+      outsideColor: "#166534",
     },
-    spawnPoint: { x: 480, y: 500 },
+    spawnPoint: { x: 1120, y: 800 },
     zones: [
-      { id: "pavilion",  name: "Zen Pavilion",  x: 60,  y: 60,  width: 350, height: 300, color: "#a16207", floorType: "wood", isPrivate: true },
-      { id: "pond",      name: "Lotus Pond",    x: 300, y: 400, width: 280, height: 220, color: "#38bdf8", floorType: "tile", isPrivate: false },
-      { id: "beach",     name: "Sandy Beach",   x: 620, y: 60,  width: 280, height: 712, color: "#fef08a", floorType: "tile", isPrivate: false },
-      { id: "garden",    name: "Garden Path",   x: 60,  y: 400, width: 220, height: 380, color: "#86efac", floorType: "grass", isOutdoor: true },
+      { id: "tea_house",  name: "Zen Tea Pavilion",      x: 60,   y: 60,   width: 800, height: 600, color: "#b45309", floorType: "wood",   isPrivate: true },
+      { id: "lotus_pond", name: "Lotus Water Lake",       x: 60,   y: 740,  width: 800, height: 800, color: "#0284c7", floorType: "tile",   isPrivate: false },
+      { id: "beach",      name: "Ocean Beach & Shore",   x: 1400, y: 60,   width: 780, height: 1480,color: "#fef08a", floorType: "tile",   isPrivate: false },
+      { id: "lawn",       name: "Central Garden Lawn",   x: 900,  y: 60,   width: 460, height: 1480,color: "#4ade80", floorType: "grass",  isOutdoor: true },
     ],
     obstacles: [
-      { x: 0,   y: 0,   width: 960, height: 48 },
-      { x: 0,   y: 784, width: 960, height: 48 },
-      { x: 0,   y: 0,   width: 48,  height: 832 },
-      { x: 912, y: 0,   width: 48,  height: 832 },
+      { x: 0,    y: 0,    width: 2240, height: 48 },
+      { x: 0,    y: 1552, width: 2240, height: 48 },
+      { x: 0,    y: 0,    width: 48,   height: 1600 },
+      { x: 2192, y: 0,    width: 48,   height: 1600 },
     ],
     furniture: [
-      { id: "tea_table", name: "Tea Table",  type: "table",  x: 140, y: 160, width: 100, height: 70, color: "#92400e", collides: true, label: "Tea House" },
-      { id: "tea_c1",   name: "Chair",       type: "chair",  x: 145, y: 145, width: 28, height: 22, color: "#d97706", collides: false },
-      { id: "tea_c2",   name: "Chair",       type: "chair",  x: 185, y: 145, width: 28, height: 22, color: "#d97706", collides: false },
-      { id: "bridge1",  name: "Bridge",      type: "bench",  x: 330, y: 430, width: 70,  height: 30, color: "#d97706", collides: false, label: "Bridge" },
-      { id: "lantern1", name: "Lantern",     type: "plant",  x: 80,  y: 100, width: 16,  height: 30, color: "#f59e0b", collides: false },
-      { id: "lantern2", name: "Lantern",     type: "plant",  x: 380, y: 100, width: 16,  height: 30, color: "#f59e0b", collides: false },
-      { id: "bench1",   name: "Bench",       type: "bench",  x: 100, y: 450, width: 60,  height: 28, color: "#92400e", collides: false },
-      { id: "rug2",     name: "Garden Rug",  type: "rug",    x: 100, y: 160, width: 250, height: 160, color: "#d97706", collides: false },
+      { id: "tea_table",  name: "Tea House Table",       type: "table",   x: 300,  y: 260,  width: 220, height: 140, color: "#78350f", collides: true, label: "Tea Table" },
+      { id: "bridge_1",   name: "North Wooden Bridge",   type: "bench",   x: 380,  y: 730,  width: 140, height: 45,  color: "#d97706", collides: false, label: "Wooden Bridge" },
+      { id: "fountain_1", name: "Zen Water Basin",       type: "fountain",x: 1040, y: 300,  width: 120, height: 120, color: "#38bdf8", collides: true, label: "Water Basin" },
     ],
     trees: [
-      { x: 100, y: 380, radius: 30, variant: 0 },
-      { x: 200, y: 360, radius: 26, variant: 1 },
-      { x: 90,  y: 480, radius: 22, variant: 2 },
-      { x: 160, y: 530, radius: 28, variant: 0 },
-      { x: 250, y: 520, radius: 20, variant: 1 },
-      { x: 80,  y: 650, radius: 24, variant: 0 },
-      { x: 200, y: 700, radius: 18, variant: 2 },
-      { x: 500, y: 100, radius: 22, variant: 0 },
-      { x: 570, y: 140, radius: 18, variant: 1 },
-      { x: 550, y: 350, radius: 20, variant: 2 },
-      { x: 600, y: 600, radius: 25, variant: 0 },
+      { x: 960,  y: 180,  radius: 34, variant: 0 },
+      { x: 1100, y: 140,  radius: 28, variant: 1 },
+      { x: 1260, y: 220,  radius: 32, variant: 0 },
+      { x: 980,  y: 450,  radius: 30, variant: 2 },
+      { x: 1180, y: 520,  radius: 36, variant: 0 },
+      { x: 1020, y: 900,  radius: 32, variant: 1 },
+      { x: 1200, y: 980,  radius: 30, variant: 0 },
+      { x: 960,  y: 1300, radius: 34, variant: 2 },
+      { x: 1180, y: 1360, radius: 32, variant: 0 },
     ],
   },
 
@@ -286,10 +353,10 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
   {
     id: "cyberpunk_lounge",
     name: "Cyberpunk Lounge",
-    theme: "Neon Nightclub",
-    description: "Futuristic neon-lit lounge with DJ stage, neon bar, VIP booths, and glowing dance floor.",
-    width: 832,
-    height: 832,
+    theme: "Neon Megacity Club",
+    description: "Futuristic neon-lit lounge with DJ stage, neon bar, VIP booths, arcade alley & main dance floor.",
+    width: 2240,
+    height: 1600,
     tileSize: 32,
     style: {
       floorType: "neon_tile",
@@ -299,40 +366,37 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
       accentColor: "#f43f5e",
       outsideColor: "#0d0015",
     },
-    spawnPoint: { x: 416, y: 680 },
+    spawnPoint: { x: 1120, y: 1400 },
     zones: [
-      { id: "dancefloor", name: "Dance Floor",    x: 216, y: 240, width: 400, height: 300, color: "#be123c" },
-      { id: "dj_booth",   name: "DJ Stage",       x: 276, y: 60,  width: 280, height: 130, color: "#431407", isPrivate: true },
-      { id: "bar",        name: "Neon Bar",        x: 60,  y: 230, width: 130, height: 320, color: "#701a75", isPrivate: true },
-      { id: "vip",        name: "VIP Lounge",      x: 642, y: 230, width: 130, height: 320, color: "#831843", isPrivate: true },
-      { id: "foyer",      name: "Entry Foyer",     x: 60,  y: 600, width: 712, height: 140, color: "#3b0764" },
+      { id: "dancefloor", name: "Neon Dance Floor",      x: 720,  y: 440,  width: 800, height: 600, color: "#be123c", isPrivate: false },
+      { id: "dj_stage",   name: "DJ Keynote Stage",      x: 820,  y: 60,   width: 600, height: 320, color: "#431407", isPrivate: true },
+      { id: "bar",        name: "Neon Cocktail Bar",      x: 60,   y: 440,  width: 600, height: 600, color: "#701a75", isPrivate: true },
+      { id: "vip_booths", name: "Executive VIP Lounges",  x: 1580, y: 440,  width: 600, height: 600, color: "#831843", isPrivate: true },
+      { id: "arcade_bay", name: "Retro Arcade Alley",     x: 60,   y: 60,   width: 600, height: 320, color: "#581c87", isPrivate: false },
     ],
     obstacles: [
-      { x: 0,   y: 0,   width: 832, height: 48 },
-      { x: 0,   y: 784, width: 832, height: 48 },
-      { x: 0,   y: 0,   width: 48,  height: 832 },
-      { x: 784, y: 0,   width: 48,  height: 832 },
+      { x: 0,    y: 0,    width: 2240, height: 48 },
+      { x: 0,    y: 1552, width: 2240, height: 48 },
+      { x: 0,    y: 0,    width: 48,   height: 1600 },
+      { x: 2192, y: 0,    width: 48,   height: 1600 },
     ],
     furniture: [
-      { id: "dj_deck",  name: "DJ Decks",   type: "dj",      x: 356, y: 100, width: 120, height: 55, color: "#f43f5e", collides: true,  label: "DJ Decks" },
-      { id: "speakers", name: "Speakers",   type: "podium",  x: 276, y: 65,  width: 50,  height: 40, color: "#e11d48", collides: true },
-      { id: "speakers2","name":"Speakers",  type: "podium",  x: 506, y: 65,  width: 50,  height: 40, color: "#e11d48", collides: true },
-      { id: "bar_cnt",  name: "Bar Counter",type: "bar",     x: 65,  y: 260, width: 50,  height: 260, color: "#a21caf", collides: true, label: "Bar" },
-      { id: "vip_sofa1","name":"VIP Sofa",  type: "sofa",    x: 648, y: 260, width: 100, height: 50, color: "#9f1239", collides: true },
-      { id: "vip_sofa2","name":"VIP Sofa",  type: "sofa",    x: 648, y: 330, width: 100, height: 50, color: "#9f1239", collides: true },
-      { id: "vip_tbl",  name: "VIP Table",  type: "table",   x: 662, y: 400, width: 70,  height: 40, color: "#831843", collides: false },
+      { id: "dj_decks",   name: "DJ Synthesizer Decks",  type: "dj",      x: 1020, y: 120,  width: 200, height: 85, color: "#f43f5e", collides: true, label: "DJ Decks" },
+      { id: "bar_cnt",    name: "Neon Bar Counter",      type: "bar",     x: 120,  y: 520,  width: 340, height: 70, color: "#e11d48", collides: true, label: "Cocktail Bar" },
+      { id: "arc_1",      name: "Arcade Machine A",      type: "arcade",  x: 120,  y: 120,  width: 70,  height: 90, color: "#f59e0b", collides: true, label: "Arcade 1" },
+      { id: "arc_2",      name: "Arcade Machine B",      type: "arcade",  x: 220,  y: 120,  width: 70,  height: 90, color: "#38bdf8", collides: true, label: "Arcade 2" },
     ],
     trees: [],
   },
 
-  // ── 5. Sci-Fi Station ─────────────────────────────────────────────────────
+  // ── 5. Sci-Fi Space Station ───────────────────────────────────────────────
   {
     id: "scifi_station",
-    name: "Sci-Fi Station",
+    name: "Sci-Fi Orbital Station",
     theme: "Futuristic Orbital Hub",
-    description: "High-tech orbital station with command bridge, reactor core, teleporter bays, and zero-g corridors.",
-    width: 960,
-    height: 832,
+    description: "High-tech orbital station with command bridge, quantum reactor core, teleporter bays & lab.",
+    width: 2240,
+    height: 1600,
     tileSize: 32,
     style: {
       floorType: "metal",
@@ -342,84 +406,69 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
       accentColor: "#38bdf8",
       outsideColor: "#020409",
     },
-    spawnPoint: { x: 480, y: 620 },
+    spawnPoint: { x: 1120, y: 1350 },
     zones: [
-      { id: "bridge",   name: "Command Bridge",  x: 300, y: 60,  width: 360, height: 200, color: "#0369a1", isPrivate: true, floorType: "metal" },
-      { id: "reactor",  name: "Reactor Core",    x: 380, y: 340, width: 200, height: 200, color: "#0e7490", isPrivate: true },
-      { id: "teleport", name: "Teleport Bay",    x: 60,  y: 280, width: 200, height: 200, color: "#0891b2", isPrivate: true },
-      { id: "science",  name: "Science Lab",     x: 700, y: 280, width: 200, height: 200, color: "#164e63", isPrivate: true },
-      { id: "corridor", name: "Main Corridor",   x: 60,  y: 560, width: 840, height: 140, color: "#1e3a5f" },
+      { id: "bridge",     name: "Command Bridge",        x: 720,  y: 60,   width: 800, height: 420, color: "#0369a1", isPrivate: true, floorType: "metal" },
+      { id: "reactor",    name: "Quantum Reactor Core",  x: 820,  y: 580,  width: 600, height: 500, color: "#0e7490", isPrivate: true },
+      { id: "teleport",   name: "Teleporter Bay",        x: 60,   y: 480,  width: 600, height: 600, color: "#0891b2", isPrivate: true },
+      { id: "lab",        name: "Bio-Genetics Lab",       x: 1580, y: 480,  width: 600, height: 600, color: "#164e63", isPrivate: true },
     ],
     obstacles: [
-      { x: 0,   y: 0,   width: 960, height: 48 },
-      { x: 0,   y: 784, width: 960, height: 48 },
-      { x: 0,   y: 0,   width: 48,  height: 832 },
-      { x: 912, y: 0,   width: 48,  height: 832 },
+      { x: 0,    y: 0,    width: 2240, height: 48 },
+      { x: 0,    y: 1552, width: 2240, height: 48 },
+      { x: 0,    y: 0,    width: 48,   height: 1600 },
+      { x: 2192, y: 0,    width: 48,   height: 1600 },
     ],
     furniture: [
-      { id: "console1","name":"Console",   type: "console",  x: 330, y: 100, width: 80,  height: 40, color: "#38bdf8", collides: true,  label: "Navigation" },
-      { id: "console2","name":"Console",   type: "console",  x: 440, y: 100, width: 80,  height: 40, color: "#38bdf8", collides: true,  label: "Weapons" },
-      { id: "console3","name":"Console",   type: "console",  x: 550, y: 100, width: 80,  height: 40, color: "#38bdf8", collides: true,  label: "Shields" },
-      { id: "capt",    "name":"Captain",   type: "chair",    x: 440, y: 180, width: 40,  height: 40, color: "#0369a1", collides: false, label: "Captain" },
-      { id: "reactor_c","name":"Reactor",  type: "reactor",  x: 430, y: 390, width: 100, height: 100, color: "#22d3ee", collides: true, label: "Core" },
-      { id: "tele1",   "name":"Telepad",   type: "fountain", x: 100, y: 320, width: 60,  height: 60, color: "#7dd3fc", collides: true,  label: "Pad A" },
-      { id: "tele2",   "name":"Telepad",   type: "fountain", x: 180, y: 320, width: 60,  height: 60, color: "#7dd3fc", collides: true,  label: "Pad B" },
+      { id: "capt_console",name:"Captain Console",       type: "console", x: 1040, y: 160,  width: 160, height: 60, color: "#38bdf8", collides: true, label: "Captain Console" },
+      { id: "reactor_c",  name:"Quantum Core",          type: "reactor", x: 1020, y: 730,  width: 200, height: 200,color: "#22d3ee", collides: true, label: "Quantum Reactor" },
+      { id: "tele_pad",   name:"Teleport Pad",           type: "fountain",x: 280,  y: 730,  width: 140, height: 140,color: "#7dd3fc", collides: true, label: "Teleport Pad" },
     ],
     trees: [],
   },
 
-  // ── 6. Playground ─────────────────────────────────────────────────────────
+  // ── 6. Sports & Recreation Park ──────────────────────────────────────────
   {
     id: "playground",
-    name: "Sports Park",
-    theme: "Outdoor Park",
-    description: "Vibrant outdoor park with basketball court, fountain plaza, and shaded picnic areas.",
-    width: 960,
-    height: 832,
+    name: "Sports & Recreation Park",
+    theme: "Outdoor Park & Stadium",
+    description: "Vibrant outdoor park with basketball court, central fountain plaza, picnic lawn & swimming pool.",
+    width: 2240,
+    height: 1600,
     tileSize: 32,
     style: {
       floorType: "grass",
-      floorColor: "#4ade80",
+      floorColor: "#22c55e",
       wallColor: "#15803d",
-      gridColor: "#86efac",
+      gridColor: "#4ade80",
       accentColor: "#f97316",
       outsideColor: "#166534",
     },
-    spawnPoint: { x: 480, y: 500 },
+    spawnPoint: { x: 1120, y: 1350 },
     zones: [
-      { id: "court",   name: "Basketball Court",  x: 60,  y: 60,  width: 340, height: 300, color: "#c2410c", floorType: "tile" },
-      { id: "fountain",name: "Fountain Plaza",    x: 360, y: 280, width: 240, height: 200, color: "#38bdf8", floorType: "tile" },
-      { id: "picnic",  name: "Picnic Lawn",       x: 620, y: 60,  width: 280, height: 300, color: "#86efac", isOutdoor: true },
-      { id: "pool",    name: "Splash Pool",       x: 360, y: 60,  width: 240, height: 200, color: "#7dd3fc", floorType: "tile" },
+      { id: "court",      name: "Basketball Court",      x: 60,   y: 60,   width: 800, height: 600, color: "#ea580c", floorType: "tile" },
+      { id: "fountain",   name: "Central Fountain Plaza",x: 720,  y: 480,  width: 800, height: 600, color: "#38bdf8", floorType: "tile" },
+      { id: "picnic",     name: "Shaded Picnic Lawn",     x: 1480, y: 60,   width: 700, height: 600, color: "#4ade80", isOutdoor: true },
+      { id: "pool",       name: "Olympic Splash Pool",   x: 1480, y: 740,  width: 700, height: 800, color: "#0284c7", floorType: "tile" },
     ],
     obstacles: [
-      { x: 0,   y: 0,   width: 960, height: 48 },
-      { x: 0,   y: 784, width: 960, height: 48 },
-      { x: 0,   y: 0,   width: 48,  height: 832 },
-      { x: 912, y: 0,   width: 48,  height: 832 },
+      { x: 0,    y: 0,    width: 2240, height: 48 },
+      { x: 0,    y: 1552, width: 2240, height: 48 },
+      { x: 0,    y: 0,    width: 48,   height: 1600 },
+      { x: 2192, y: 0,    width: 48,   height: 1600 },
     ],
     furniture: [
-      { id: "hoop1",    name: "Hoop",       type: "podium",   x: 230, y: 70,  width: 20, height: 30, color: "#f97316", collides: true, label: "🏀" },
-      { id: "hoop2",    name: "Hoop",       type: "podium",   x: 230, y: 330, width: 20, height: 30, color: "#f97316", collides: true },
-      { id: "fountain_c","name":"Fountain", type: "fountain", x: 430, y: 330, width: 100, height: 100, color: "#38bdf8", collides: true, label: "Fountain" },
-      { id: "pool_c",   name: "Pool",       type: "fountain", x: 400, y: 90,  width: 160, height: 130, color: "#7dd3fc", collides: false },
-      { id: "bench_p1", name: "Bench",      type: "bench",    x: 640, y: 120, width: 70,  height: 28, color: "#92400e", collides: false },
-      { id: "bench_p2", name: "Bench",      type: "bench",    x: 640, y: 280, width: 70,  height: 28, color: "#92400e", collides: false },
-      { id: "table_pic","name":"Picnic Table",type: "table",  x: 680, y: 180, width: 80,  height: 45, color: "#78350f", collides: true, label: "Picnic" },
+      { id: "fountain_c", name: "Stone Fountain",        type: "fountain",x: 1020, y: 680,  width: 200, height: 200,color: "#38bdf8", collides: true, label: "Fountain Plaza" },
+      { id: "picnic_t1",  name: "Picnic Bench 1",        type: "table",   x: 1640, y: 220,  width: 160, height: 80, color: "#78350f", collides: true, label: "Picnic Bench" },
+      { id: "picnic_t2",  name: "Picnic Bench 2",        type: "table",   x: 1860, y: 220,  width: 160, height: 80, color: "#78350f", collides: true, label: "Picnic Bench" },
     ],
     trees: [
-      { x: 120, y: 600, radius: 30, variant: 0 },
-      { x: 200, y: 640, radius: 24, variant: 1 },
-      { x: 300, y: 620, radius: 28, variant: 0 },
-      { x: 450, y: 630, radius: 22, variant: 2 },
-      { x: 550, y: 600, radius: 26, variant: 0 },
-      { x: 650, y: 420, radius: 20, variant: 1 },
-      { x: 720, y: 440, radius: 18, variant: 2 },
-      { x: 800, y: 400, radius: 24, variant: 0 },
-      { x: 870, y: 500, radius: 22, variant: 1 },
-      { x: 100, y: 700, radius: 22, variant: 2 },
-      { x: 750, y: 650, radius: 26, variant: 0 },
-      { x: 880, y: 700, radius: 20, variant: 1 },
+      { x: 900,  y: 160,  radius: 36, variant: 0 },
+      { x: 1120, y: 120,  radius: 30, variant: 1 },
+      { x: 1300, y: 180,  radius: 34, variant: 0 },
+      { x: 780,  y: 1140, radius: 32, variant: 2 },
+      { x: 1440, y: 1180, radius: 36, variant: 0 },
+      { x: 1080, y: 1400, radius: 32, variant: 1 },
     ],
   },
 

@@ -371,6 +371,13 @@ export class MainScene extends Phaser.Scene {
     this.input.keyboard!.removeCapture("SPACE");
     this.input.keyboard!.removeCapture(32);
 
+    // Smooth mouse wheel zoom (zoom in / out anytime)
+    this.input.on("wheel", (_pointer: unknown, _gameObjects: unknown, _deltaX: number, deltaY: number) => {
+      const currentZoom = this.cameras.main.zoom;
+      const newZoom = Phaser.Math.Clamp(currentZoom - deltaY * 0.0008, 0.35, 1.5);
+      this.cameras.main.setZoom(newZoom);
+    });
+
     gameBridge.registerStateApplier((p: PlayerState[]) => this.reconcileState(p));
   }
 
@@ -922,7 +929,7 @@ export class MainScene extends Phaser.Scene {
         // Decks (two turntables)
         const dkW = w * 0.38;
         g.fillStyle(0x1e293b, 1); g.fillCircle(x + w * 0.25, y + h * 0.5, dkW / 2);
-        g.fillStyle(1 ? col : 0x111, 1); g.fillCircle(x + w * 0.75, y + h * 0.5, dkW / 2);
+        g.fillStyle(col, 1); g.fillCircle(x + w * 0.75, y + h * 0.5, dkW / 2);
         // Record grooves
         g.lineStyle(0.5, 0x475569, 0.5);
         for (let r2 = 5; r2 < dkW / 2 - 2; r2 += 5) {
@@ -936,6 +943,44 @@ export class MainScene extends Phaser.Scene {
         g.fillStyle(0x374151, 1); g.fillRoundedRect(x + w * 0.42, y + 4, w * 0.16, h - 8, 3);
         g.lineStyle(1, col, 0.5); g.strokeRoundedRect(x, y, w, h, 5);
         if (f.label) this.addSmallLabel(x + w / 2, y - 4, f.label);
+        break;
+      }
+      case "arcade": {
+        // Arcade Cabinet Machine
+        g.fillStyle(col, 1); g.fillRoundedRect(x, y, w, h, 4);
+        // Marquee header
+        g.fillStyle(0xf59e0b, 1); g.fillRect(x + 2, y + 2, w - 4, Math.max(6, h * 0.16));
+        // Screen
+        g.fillStyle(0x0284c7, 1); g.fillRect(x + 3, y + Math.max(8, h * 0.2), w - 6, h * 0.45);
+        g.fillStyle(0xffffff, 0.25); g.fillRect(x + 4, y + Math.max(9, h * 0.22), (w - 8) * 0.5, h * 0.2);
+        // Controls
+        g.fillStyle(0x334155, 1); g.fillRect(x + 2, y + h * 0.68, w - 4, 8);
+        g.fillStyle(0xef4444, 1); g.fillCircle(x + 8, y + h * 0.68 + 4, 2);
+        g.fillStyle(0x22c55e, 1); g.fillCircle(x + w - 8, y + h * 0.68 + 4, 2);
+        g.lineStyle(1, 0xffffff, 0.3); g.strokeRoundedRect(x, y, w, h, 4);
+        if (f.label) this.addSmallLabel(x + w / 2, y - 4, f.label);
+        break;
+      }
+      case "server": {
+        // Server Rack
+        g.fillStyle(0x0f172a, 1); g.fillRoundedRect(x, y, w, h, 3);
+        g.lineStyle(1, 0x334155, 0.8); g.strokeRoundedRect(x, y, w, h, 3);
+        const unitH = 8;
+        for (let u = y + 4; u < y + h - 6; u += unitH + 3) {
+          g.fillStyle(0x1e293b, 1); g.fillRect(x + 3, u, w - 6, unitH);
+          g.fillStyle(0x22c55e, 1); g.fillCircle(x + 7, u + 4, 1.5);
+          g.fillStyle(0x38bdf8, 1); g.fillCircle(x + 13, u + 4, 1.5);
+        }
+        if (f.label) this.addSmallLabel(x + w / 2, y - 4, f.label);
+        break;
+      }
+      case "booth": {
+        // Private Phone / Zoom Booth
+        g.fillStyle(col, 0.75); g.fillRoundedRect(x, y, w, h, 6);
+        g.lineStyle(2, col, 1); g.strokeRoundedRect(x, y, w, h, 6);
+        g.fillStyle(0x38bdf8, 0.25); g.fillRoundedRect(x + 3, y + 3, w - 6, h * 0.5, 4);
+        g.fillStyle(0x64748b, 1); g.fillCircle(x + w / 2, y + h * 0.75, Math.min(8, w * 0.25));
+        if (f.label) this.addSmallLabel(x + w / 2, y + h / 2, f.label);
         break;
       }
       default: {
@@ -988,11 +1033,13 @@ export class MainScene extends Phaser.Scene {
   private applyAutoZoom(W: number, H: number): void {
     const cW = this.scale.width, cH = this.scale.height;
     if (!cW || !cH) return;
-    // "Fit" zoom: shrink until the entire world is visible in the viewport
-    // Multiply by 0.82 for comfortable breathing room around the map edges.
-    // Clamped so tiny maps don't over-zoom and huge maps stay legible.
-    const fitZoom = Math.min(cW / W, cH / H) * 0.82;
-    this.cameras.main.setZoom(Phaser.Math.Clamp(fitZoom, 0.35, 1.0));
+    this.cameras.main.setBounds(0, 0, W, H);
+    // For large sprawling maps (width >= 1600), set a natural exploration zoom (~0.85) so you explore room-to-room with camera follow!
+    // For smaller maps, fit the view comfortably.
+    const fitZoom = Math.min(cW / W, cH / H) * 0.95;
+    const explorationZoom = 0.85;
+    const targetZoom = W >= 1600 ? Math.max(fitZoom, explorationZoom) : fitZoom;
+    this.cameras.main.setZoom(Phaser.Math.Clamp(targetZoom, 0.4, 1.2));
     this.cameras.main.setViewport(0, 0, cW, cH);
   }
 
