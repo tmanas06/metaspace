@@ -48,7 +48,7 @@ class ColyseusManager {
 
   // Auto-reconnect state
   private lastConnectUsername: string | null = null;
-  private lastConnectMapPreset: string = "Event Hall & Main Stage";
+  private lastConnectMapId: string = "event_hall";
   private intentionalDisconnect = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectAttempts = 0;
@@ -107,7 +107,7 @@ class ColyseusManager {
     }
   }
 
-  async connect(username: string, mapPreset: string = "Event Hall & Main Stage") {
+  async connect(username: string, mapId: string = "event_hall") {
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
     if (!wsUrl) {
       console.error("[Colyseus] NEXT_PUBLIC_WS_URL is not set");
@@ -117,7 +117,7 @@ class ColyseusManager {
 
     // Remember params for auto-reconnect
     this.lastConnectUsername = username;
-    this.lastConnectMapPreset = mapPreset;
+    this.lastConnectMapId = mapId;
     this.intentionalDisconnect = false;
     this.cancelReconnect();
 
@@ -125,7 +125,7 @@ class ColyseusManager {
 
     try {
       this.client = new Colyseus.Client(wsUrl);
-      this.room = await this.client.joinOrCreate("MapRoom", { username, mapPreset });
+      this.room = await this.client.joinOrCreate(mapId, { username });
 
       this.setState({
         status: "connected",
@@ -324,7 +324,7 @@ class ColyseusManager {
     this.setState({ status: "connecting", error: `Reconnecting... (attempt ${this.reconnectAttempts})` });
     this.reconnectTimer = setTimeout(async () => {
       if (!this.intentionalDisconnect && this.lastConnectUsername) {
-        await this.connect(this.lastConnectUsername, this.lastConnectMapPreset);
+        await this.connect(this.lastConnectUsername, this.lastConnectMapId);
       }
     }, delay);
   }

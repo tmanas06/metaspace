@@ -104,17 +104,16 @@ export function VirtualWorld() {
     });
   }, []);
 
-  // Auto-connect Colyseus when user joins
+  // Auto-connect Colyseus when user joins or switches maps
   useEffect(() => {
     if (joined && username) {
-      colyseus.connect(username, selectedMapData.name);
+      colyseus.connect(username, selectedMapData.id);
       gameBridge.setMapTheme(selectedMapData);
     }
     return () => {
       if (joined) colyseus.disconnect();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [joined, username]);
+  }, [joined, username, selectedMapData.id]);
 
   // Update map theme in Phaser when active map changes
   const handleSelectMap = (presetData: MapPresetData) => {

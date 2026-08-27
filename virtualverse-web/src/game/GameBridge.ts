@@ -25,6 +25,8 @@ export interface PlayerState {
   x: number;
   y: number;
   username?: string;
+  isSitting?: boolean;
+  seatId?: string;
 }
 
 import { MapPresetData } from "@/lib/api";
