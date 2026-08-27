@@ -262,27 +262,21 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
       },
       {
         "x": 760,
-        "y": 440,
-        "width": 20,
-        "height": 100
-      },
-      {
-        "x": 760,
-        "y": 580,
-        "width": 20,
-        "height": 440
-      },
-      {
-        "x": 760,
-        "y": 1060,
-        "width": 20,
-        "height": 60
-      },
-      {
-        "x": 760,
-        "y": 1120,
+        "y": 540,
         "width": 20,
         "height": 40
+      },
+      {
+        "x": 760,
+        "y": 1020,
+        "width": 20,
+        "height": 40
+      },
+      {
+        "x": 760,
+        "y": 1160,
+        "width": 20,
+        "height": 392
       },
       {
         "x": 48,
@@ -316,25 +310,13 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
       },
       {
         "x": 1460,
-        "y": 440,
+        "y": 540,
         "width": 20,
-        "height": 100
+        "height": 40
       },
       {
         "x": 1460,
-        "y": 580,
-        "width": 20,
-        "height": 440
-      },
-      {
-        "x": 1460,
-        "y": 1060,
-        "width": 20,
-        "height": 60
-      },
-      {
-        "x": 1460,
-        "y": 1120,
+        "y": 1020,
         "width": 20,
         "height": 40
       },
@@ -342,7 +324,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "x": 1460,
         "y": 1160,
         "width": 20,
-        "height": 380
+        "height": 392
       },
       {
         "x": 1480,
