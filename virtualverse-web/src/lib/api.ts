@@ -253,114 +253,6 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "y": 0,
         "width": 48,
         "height": 1600
-      },
-      {
-        "x": 760,
-        "y": 48,
-        "width": 20,
-        "height": 392
-      },
-      {
-        "x": 760,
-        "y": 540,
-        "width": 20,
-        "height": 40
-      },
-      {
-        "x": 760,
-        "y": 1020,
-        "width": 20,
-        "height": 40
-      },
-      {
-        "x": 760,
-        "y": 1160,
-        "width": 20,
-        "height": 392
-      },
-      {
-        "x": 48,
-        "y": 550,
-        "width": 302,
-        "height": 20
-      },
-      {
-        "x": 430,
-        "y": 550,
-        "width": 330,
-        "height": 20
-      },
-      {
-        "x": 48,
-        "y": 1030,
-        "width": 302,
-        "height": 20
-      },
-      {
-        "x": 430,
-        "y": 1030,
-        "width": 330,
-        "height": 20
-      },
-      {
-        "x": 1460,
-        "y": 48,
-        "width": 20,
-        "height": 392
-      },
-      {
-        "x": 1460,
-        "y": 540,
-        "width": 20,
-        "height": 40
-      },
-      {
-        "x": 1460,
-        "y": 1020,
-        "width": 20,
-        "height": 40
-      },
-      {
-        "x": 1460,
-        "y": 1160,
-        "width": 20,
-        "height": 392
-      },
-      {
-        "x": 1480,
-        "y": 550,
-        "width": 300,
-        "height": 20
-      },
-      {
-        "x": 1860,
-        "y": 550,
-        "width": 332,
-        "height": 20
-      },
-      {
-        "x": 1480,
-        "y": 1030,
-        "width": 300,
-        "height": 20
-      },
-      {
-        "x": 1860,
-        "y": 1030,
-        "width": 332,
-        "height": 20
-      },
-      {
-        "x": 760,
-        "y": 390,
-        "width": 320,
-        "height": 20
-      },
-      {
-        "x": 1160,
-        "y": 390,
-        "width": 320,
-        "height": 20
       }
     ],
     "furniture": [
@@ -415,7 +307,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 90,
         "height": 90,
         "color": "#38bdf8",
-        "collides": true,
+        "collides": false,
         "label": "Fountain"
       },
       {
@@ -447,7 +339,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 360,
         "height": 24,
         "color": "#fbbf24",
-        "collides": true,
+        "collides": false,
         "label": "Presentation LED Screen"
       },
       {
@@ -459,7 +351,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 80,
         "height": 50,
         "color": "#f59e0b",
-        "collides": true,
+        "collides": false,
         "label": "Podium"
       },
       {
@@ -763,7 +655,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 140,
         "height": 60,
         "color": "#38bdf8",
-        "collides": true,
+        "collides": false,
         "label": "GPU Workstation"
       },
       {
@@ -775,7 +667,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 65,
         "height": 100,
         "color": "#0f172a",
-        "collides": true,
+        "collides": false,
         "label": "Server A"
       },
       {
@@ -787,7 +679,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 65,
         "height": 100,
         "color": "#0f172a",
-        "collides": true,
+        "collides": false,
         "label": "Server B"
       },
       {
@@ -799,7 +691,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 180,
         "height": 20,
         "color": "#0284c7",
-        "collides": true,
+        "collides": false,
         "label": "Glass Board"
       },
       {
@@ -903,7 +795,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 280,
         "height": 20,
         "color": "#3730a3",
-        "collides": true,
+        "collides": false,
         "label": "Presentation Board"
       },
       {
@@ -915,7 +807,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 60,
         "height": 70,
         "color": "#6366f1",
-        "collides": true,
+        "collides": false,
         "label": "Booth 1"
       },
       {
@@ -927,7 +819,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 60,
         "height": 70,
         "color": "#6366f1",
-        "collides": true,
+        "collides": false,
         "label": "Booth 2"
       },
       {
@@ -1015,7 +907,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 220,
         "height": 20,
         "color": "#f472b6",
-        "collides": true,
+        "collides": false,
         "label": "Design Moodboard"
       },
       {
@@ -1027,7 +919,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 220,
         "height": 50,
         "color": "#92400e",
-        "collides": true,
+        "collides": false,
         "label": "Coffee Bar"
       },
       {
@@ -1039,7 +931,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 60,
         "height": 80,
         "color": "#e2e8f0",
-        "collides": true,
+        "collides": false,
         "label": "Fridge"
       },
       {
@@ -1097,7 +989,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 65,
         "height": 85,
         "color": "#f59e0b",
-        "collides": true,
+        "collides": false,
         "label": "Arcade 1"
       },
       {
@@ -1109,7 +1001,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 65,
         "height": 85,
         "color": "#ef4444",
-        "collides": true,
+        "collides": false,
         "label": "Arcade 2"
       },
       {
@@ -1121,7 +1013,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 180,
         "height": 75,
         "color": "#a855f7",
-        "collides": true,
+        "collides": false,
         "label": "Lounge Sofa"
       },
       {
@@ -1133,7 +1025,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 180,
         "height": 80,
         "color": "#ec4899",
-        "collides": true,
+        "collides": false,
         "label": "DJ Stage Decks"
       }
     ],
@@ -1419,7 +1311,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "accentColor": "#34d399",
         "spriteKey": "board_chalkboard_frame",
         "assetCategory": "decor",
-        "collides": true,
+        "collides": false,
         "label": "Chalkboard",
         "isAdminOnly": true
       },
@@ -1435,7 +1327,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "accentColor": "#fbbf24",
         "spriteKey": "podium_academic_wood",
         "assetCategory": "stage",
-        "collides": true,
+        "collides": false,
         "label": "Lectern",
         "isAdminOnly": true,
         "isStage": true
@@ -1693,7 +1585,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "accentColor": "#4ade80",
         "spriteKey": "sofa_office_leather_green",
         "assetCategory": "furniture",
-        "collides": true,
+        "collides": false,
         "label": "Office Hours Sofa"
       },
       {
@@ -1708,7 +1600,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "accentColor": "#4ade80",
         "spriteKey": "sofa_office_leather_green",
         "assetCategory": "furniture",
-        "collides": true,
+        "collides": false,
         "label": "Office Hours Sofa"
       },
       {
@@ -1738,7 +1630,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "accentColor": "#86efac",
         "spriteKey": "chair_armchair_green",
         "assetCategory": "furniture",
-        "collides": true,
+        "collides": false,
         "seats": 1
       },
       {
@@ -1753,7 +1645,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "accentColor": "#86efac",
         "spriteKey": "chair_armchair_green",
         "assetCategory": "furniture",
-        "collides": true,
+        "collides": false,
         "seats": 1
       },
       {
@@ -1768,7 +1660,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "accentColor": "#f59e0b",
         "spriteKey": "shelf_books_wood_a",
         "assetCategory": "furniture",
-        "collides": true,
+        "collides": false,
         "label": "Bookshelf A"
       },
       {
@@ -1783,7 +1675,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "accentColor": "#f59e0b",
         "spriteKey": "shelf_books_wood_b",
         "assetCategory": "furniture",
-        "collides": true,
+        "collides": false,
         "label": "Bookshelf B"
       },
       {
@@ -1843,7 +1735,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "accentColor": "#86efac",
         "spriteKey": "plant_potted_monstera",
         "assetCategory": "landscaping",
-        "collides": true
+        "collides": false
       },
       {
         "id": "class_plant_2",
@@ -1857,7 +1749,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "accentColor": "#86efac",
         "spriteKey": "plant_potted_fig",
         "assetCategory": "landscaping",
-        "collides": true
+        "collides": false
       },
       {
         "id": "campus_tree_1",
@@ -1871,7 +1763,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "accentColor": "#4ade80",
         "spriteKey": "tree_pine_evergreen",
         "assetCategory": "landscaping",
-        "collides": true
+        "collides": false
       },
       {
         "id": "campus_tree_2",
@@ -1885,7 +1777,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "accentColor": "#4ade80",
         "spriteKey": "tree_pine_evergreen",
         "assetCategory": "landscaping",
-        "collides": true
+        "collides": false
       }
     ]
   },
@@ -2016,7 +1908,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 120,
         "height": 120,
         "color": "#38bdf8",
-        "collides": true,
+        "collides": false,
         "label": "Water Basin"
       }
     ],
@@ -2212,7 +2104,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 600,
         "height": 30,
         "color": "#fbbf24",
-        "collides": true,
+        "collides": false,
         "label": "Main Keynote Screen"
       },
       {
@@ -2224,7 +2116,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 80,
         "height": 50,
         "color": "#d97706",
-        "collides": true,
+        "collides": false,
         "label": "Keynote Podium"
       },
       {
@@ -2272,7 +2164,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 320,
         "height": 60,
         "color": "#fbbf24",
-        "collides": true,
+        "collides": false,
         "label": "Networking Bar"
       }
     ],
@@ -2415,7 +2307,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 200,
         "height": 85,
         "color": "#f43f5e",
-        "collides": true,
+        "collides": false,
         "label": "DJ Decks"
       },
       {
@@ -2427,7 +2319,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 340,
         "height": 70,
         "color": "#e11d48",
-        "collides": true,
+        "collides": false,
         "label": "Cocktail Bar"
       },
       {
@@ -2439,7 +2331,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 70,
         "height": 90,
         "color": "#f59e0b",
-        "collides": true,
+        "collides": false,
         "label": "Arcade 1"
       },
       {
@@ -2451,7 +2343,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 70,
         "height": 90,
         "color": "#38bdf8",
-        "collides": true,
+        "collides": false,
         "label": "Arcade 2"
       }
     ],
@@ -2560,7 +2452,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 160,
         "height": 60,
         "color": "#38bdf8",
-        "collides": true,
+        "collides": false,
         "label": "Captain Console"
       },
       {
@@ -2572,7 +2464,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 200,
         "height": 200,
         "color": "#22d3ee",
-        "collides": true,
+        "collides": false,
         "label": "Quantum Reactor"
       },
       {
@@ -2584,7 +2476,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 140,
         "height": 140,
         "color": "#7dd3fc",
-        "collides": true,
+        "collides": false,
         "label": "Teleport Pad"
       }
     ],
@@ -2690,7 +2582,7 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "width": 200,
         "height": 200,
         "color": "#38bdf8",
-        "collides": true,
+        "collides": false,
         "label": "Fountain Plaza"
       },
       {
