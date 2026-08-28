@@ -673,18 +673,61 @@ function JoinScreen({
         .js-submit:active:not(:disabled) { transform: translateY(0); }
         .js-submit:disabled { opacity: 0.4; cursor: not-allowed; }
 
-        /* Mobile: stack panels */
+        /* Mobile: responsive layout optimization */
         @media (max-width: 768px) {
-          .js-root { flex-direction: column; }
-          .js-left {
-            width: 100%; max-width: 100%; padding: 32px 24px 24px;
-            border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06);
+          .js-root {
+            flex-direction: column;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            min-height: 100dvh;
           }
-          .js-logo-row { margin-bottom: 0; }
+          .js-left {
+            width: 100%; max-width: 100%;
+            padding: 16px 20px 12px;
+            border-right: none;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(12px);
+          }
+          .js-logo-row { margin-bottom: 0; gap: 10px; }
+          .js-logo-icon { width: 36px; height: 36px; border-radius: 10px; }
+          .js-logo-text { font-size: 18px; }
           .js-tagline, .js-sub, .js-hints { display: none; }
-          .js-status-bar { padding-top: 0; margin-top: 12px; }
-          .js-right { padding: 28px 24px 48px; }
-          .js-map-grid { grid-template-columns: repeat(2, 1fr); }
+          .js-status-bar { padding-top: 0; margin-top: 6px; font-size: 11px; }
+
+          .js-right {
+            padding: 20px 20px 32px;
+            overflow-y: visible;
+            justify-content: flex-start;
+          }
+          .js-form-title { font-size: 13px; margin-bottom: 16px; }
+          .js-field { margin-bottom: 20px; }
+          .js-input { padding: 12px 12px 12px 40px; font-size: 14px; border-radius: 11px; }
+
+          /* On mobile, display map cards as a smooth horizontal scrolling carousel */
+          .js-map-grid {
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            gap: 10px;
+            margin-bottom: 24px;
+            padding: 4px 2px 12px 2px;
+            -webkit-overflow-scrolling: touch;
+          }
+          .js-map-card {
+            flex: 0 0 150px;
+            scroll-snap-align: start;
+            padding: 12px;
+            gap: 6px;
+          }
+          .js-map-icon { font-size: 20px; }
+          .js-map-name { font-size: 12px; }
+
+          .js-submit {
+            padding: 14px 20px;
+            font-size: 14.5px;
+            border-radius: 12px;
+          }
         }
       `}</style>
 

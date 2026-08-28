@@ -54,8 +54,8 @@ class LiveKitManager {
     error: null,
     remoteVideoTracks: new Map(),
     remoteVideoElements: new Map(),
-    micEnabled: true,
-    camEnabled: true,
+    micEnabled: false,
+    camEnabled: false,
     facingMode: "user",
   };
 

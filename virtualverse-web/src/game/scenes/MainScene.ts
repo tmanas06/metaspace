@@ -433,6 +433,14 @@ export class MainScene extends Phaser.Scene {
   // ── Map builder ──────────────────────────────────────────────────────────────
 
   private buildMap(data: MapPresetData): void {
+    if (!data) return;
+    this.currentMap = data;
+
+    // Guard against uninitialized physics/scene objects during early React state updates
+    if (!this.physics?.world || !this.walls || !this.mapLabels || !this.mapGfx) {
+      return;
+    }
+
     const W  = data.width  || 960;
     const H  = data.height || 832;
     const TS = data.tileSize || 32;

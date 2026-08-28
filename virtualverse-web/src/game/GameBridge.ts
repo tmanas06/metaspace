@@ -42,8 +42,9 @@ class GameBridge {
   private proximityEndListeners: ProximityListener[] = [];
   private stateApplier: StateApplier | null = null;
   private mapDataListener: MapDataListener | null = null;
-  // Buffered so a late-registering Phaser scene gets the latest state on mount
+  // Buffered so a late-registering Phaser scene gets the latest state/map theme on mount
   private lastKnownState: PlayerState[] | null = null;
+  private lastMapData: MapPresetData | string | null = null;
 
   // Touch/joystick input injected by the React MobileJoystick component.
   // Phaser's update() reads this every frame alongside keyboard input.
@@ -95,11 +96,15 @@ class GameBridge {
 
   // Called by React when active map data changes
   setMapTheme(mapData: MapPresetData | string) {
+    this.lastMapData = mapData;
     if (this.mapDataListener) this.mapDataListener(mapData);
   }
 
   registerMapThemeListener(fn: MapDataListener) {
     this.mapDataListener = fn;
+    if (this.lastMapData) {
+      fn(this.lastMapData);
+    }
     return () => {
       this.mapDataListener = null;
     };

@@ -31,7 +31,7 @@ export function VideoOverlay({
   onToggleChat,
   isChatOpen,
 }: VideoOverlayProps) {
-  const [isMicOn, setIsMicOn] = useState(true);
+  const [isMicOn, setIsMicOn] = useState(false);
   const [isCamOn, setIsCamOn] = useState(false);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
   const localVideoRef = useRef<HTMLVideoElement>(null);
