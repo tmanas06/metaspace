@@ -249,6 +249,10 @@ class LiveKitManager {
 
       this.room.on(RoomEvent.TrackSubscribed, this.handleTrackSubscribed.bind(this));
       this.room.on(RoomEvent.TrackUnsubscribed, this.handleTrackUnsubscribed.bind(this));
+      this.room.on(RoomEvent.ParticipantDisconnected, (participant) => {
+        console.log("[LiveKit] Remote participant disconnected:", participant.identity);
+        this.handleParticipantDisconnected(participant);
+      });
       this.room.on(RoomEvent.ParticipantConnected, (participant) => {
         console.log("[LiveKit] Remote participant connected:", participant.identity);
         participant.trackPublications.forEach((pub) => {
@@ -405,12 +409,59 @@ class LiveKitManager {
     });
   }
 
+  private handleParticipantDisconnected(participant: RemoteParticipant) {
+    const existingAudio = document.getElementById(`remote-audio-${participant.identity}`);
+    if (existingAudio) existingAudio.remove();
+
+    const newMap = new Map(this.state.remoteVideoElements);
+    const videoEl = newMap.get(participant.identity);
+    if (videoEl) {
+      videoEl.srcObject = null;
+      videoEl.remove();
+      newMap.delete(participant.identity);
+    }
+
+    const newTracksMap = new Map(this.state.remoteVideoTracks);
+    newTracksMap.delete(participant.identity);
+
+    const nextProximity = new Set(this.state.activeProximitySet);
+    nextProximity.delete(participant.identity);
+
+    this.setState({
+      remoteVideoElements: newMap,
+      remoteVideoTracks: newTracksMap,
+      activeProximitySet: nextProximity,
+      activeTargetId: nextProximity.size > 0 ? Array.from(nextProximity)[0] : null,
+    });
+  }
+
   private async cleanup() {
+    if (this.room?.localParticipant) {
+      try {
+        await this.room.localParticipant.setCameraEnabled(false);
+        await this.room.localParticipant.setMicrophoneEnabled(false);
+      } catch (e) {
+        console.warn("[LiveKit] Error disabling local tracks:", e);
+      }
+    }
     for (const track of this.localTracks) {
-      track.stop();
+      try {
+        track.stop();
+      } catch (e) {
+        // ignore
+      }
     }
     this.localTracks = [];
     document.querySelectorAll("audio[id^='remote-audio-']").forEach((el) => el.remove());
+    document.querySelectorAll("video").forEach((el) => {
+      if (el.srcObject) {
+        const stream = el.srcObject as MediaStream;
+        if (stream && typeof stream.getTracks === "function") {
+          stream.getTracks().forEach((t) => t.stop());
+        }
+        el.srcObject = null;
+      }
+    });
     this.room = null;
   }
 }

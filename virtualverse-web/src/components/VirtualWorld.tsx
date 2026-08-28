@@ -116,6 +116,24 @@ export function VirtualWorld() {
     };
   }, [joined, username, selectedMapData.id]);
 
+  // Disconnect cleanly if user closes browser tab, reloads, or swipes browser away on mobile
+  useEffect(() => {
+    const handleUnload = () => {
+      colyseus.disconnect();
+      import("@/lib/livekit").then(({ liveKitManager }) => {
+        liveKitManager.disconnectProximityRoom();
+      });
+    };
+
+    window.addEventListener("beforeunload", handleUnload);
+    window.addEventListener("pagehide", handleUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleUnload);
+      window.removeEventListener("pagehide", handleUnload);
+    };
+  }, [colyseus]);
+
   // Update map theme in Phaser when active map changes
   const handleSelectMap = (presetData: MapPresetData) => {
     setSelectedMapData(presetData);
@@ -133,6 +151,9 @@ export function VirtualWorld() {
 
   const handleLeave = () => {
     colyseus.disconnect();
+    import("@/lib/livekit").then(({ liveKitManager }) => {
+      liveKitManager.disconnectProximityRoom();
+    });
     setJoined(false);
   };
 
