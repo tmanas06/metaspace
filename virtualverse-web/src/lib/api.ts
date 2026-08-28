@@ -1229,57 +1229,25 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "x": 0,
         "y": 0,
         "width": 960,
-        "height": 32,
-        "label": "North Wall",
-        "type": "wall",
-        "color": "#0f291e"
+        "height": 32
       },
       {
         "x": 0,
         "y": 736,
         "width": 960,
-        "height": 32,
-        "label": "South Wall",
-        "type": "wall",
-        "color": "#0f291e"
+        "height": 32
       },
       {
         "x": 0,
         "y": 0,
         "width": 32,
-        "height": 768,
-        "label": "West Wall",
-        "type": "wall",
-        "color": "#0f291e"
+        "height": 768
       },
       {
         "x": 928,
         "y": 0,
         "width": 32,
-        "height": 768,
-        "label": "East Wall",
-        "type": "wall",
-        "color": "#0f291e"
-      },
-      {
-        "x": 515,
-        "y": 460,
-        "width": 10,
-        "height": 70
-      },
-      {
-        "x": 515,
-        "y": 620,
-        "width": 10,
-        "height": 70
-      },
-      {
-        "x": 200,
-        "y": 50,
-        "width": 560,
-        "height": 140,
-        "label": "Teacher Stage Zone",
-        "isAdminOnly": true
+        "height": 768
       }
     ],
     "furniture": [
@@ -2074,24 +2042,6 @@ export const FALLBACK_MAP_PRESETS: MapPresetData[] = [
         "y": 0,
         "width": 48,
         "height": 1600
-      },
-      {
-        "x": 600,
-        "y": 48,
-        "width": 20,
-        "height": 372
-      },
-      {
-        "x": 1120,
-        "y": 48,
-        "width": 20,
-        "height": 432
-      },
-      {
-        "x": 1120,
-        "y": 1000,
-        "width": 20,
-        "height": 552
       }
     ],
     "furniture": [
