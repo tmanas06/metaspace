@@ -33,6 +33,59 @@ export function ChatPanel({ username, disabled, isOpen = true, onClose }: ChatPa
   const [isExpanded, setIsExpanded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Draggable window state
+  const [position, setPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef<{ startX: number; startY: number; initialX: number; initialY: number }>({
+    startX: 0,
+    startY: 0,
+    initialX: 0,
+    initialY: 0,
+  });
+
+  const handlePointerDown = (clientX: number, clientY: number) => {
+    setIsDragging(true);
+    dragStartRef.current = {
+      startX: clientX,
+      startY: clientY,
+      initialX: position.x,
+      initialY: position.y,
+    };
+  };
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handlePointerMove = (e: MouseEvent | TouchEvent) => {
+      const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+      const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+      const deltaX = clientX - dragStartRef.current.startX;
+      const deltaY = clientY - dragStartRef.current.startY;
+      setPosition({
+        x: dragStartRef.current.initialX + deltaX,
+        y: dragStartRef.current.initialY + deltaY,
+      });
+    };
+
+    const handlePointerUp = () => {
+      setIsDragging(false);
+    };
+
+    window.addEventListener("mousemove", handlePointerMove);
+    window.addEventListener("mouseup", handlePointerUp);
+    window.addEventListener("touchmove", handlePointerMove, { passive: false });
+    window.addEventListener("touchend", handlePointerUp);
+    window.addEventListener("touchcancel", handlePointerUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handlePointerMove);
+      window.removeEventListener("mouseup", handlePointerUp);
+      window.removeEventListener("touchmove", handlePointerMove);
+      window.removeEventListener("touchend", handlePointerUp);
+      window.removeEventListener("touchcancel", handlePointerUp);
+    };
+  }, [isDragging]);
+
   // Subscribe to real-time chat messages from Colyseus server with strict deduplication
   useEffect(() => {
     const unsub = colyseusManager.onChatMessage((msg) => {
@@ -133,7 +186,8 @@ export function ChatPanel({ username, disabled, isOpen = true, onClose }: ChatPa
     <div
       id="chat-panel"
       style={{
-        width: `min(${isExpanded ? 480 : 310}px, 100%)`,
+        width: `min(${isExpanded ? 480 : 310}px, calc(100vw - 32px))`,
+        maxHeight: isExpanded ? "min(550px, 55vh)" : "min(360px, 38vh)",
         borderRadius: 16,
         background: "rgba(15, 23, 42, 0.95)",
         border: "1px solid rgba(255, 255, 255, 0.12)",
@@ -142,21 +196,44 @@ export function ChatPanel({ username, disabled, isOpen = true, onClose }: ChatPa
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        transition: "width 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+        transform: `translate(${position.x}px, ${position.y}px)`,
+        transition: isDragging
+          ? "none"
+          : "width 0.25s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
       }}
     >
-      {/* Header */}
+      {/* Header — Draggable handle */}
       <div
+        onMouseDown={(e) => {
+          if ((e.target as HTMLElement).closest("button")) return;
+          handlePointerDown(e.clientX, e.clientY);
+        }}
+        onTouchStart={(e) => {
+          if ((e.target as HTMLElement).closest("button")) return;
+          const touch = e.touches[0];
+          handlePointerDown(touch.clientX, touch.clientY);
+        }}
         style={{
           padding: "10px 14px",
           borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          background: "rgba(255, 255, 255, 0.02)",
+          background: isDragging ? "rgba(99, 102, 241, 0.15)" : "rgba(255, 255, 255, 0.02)",
+          cursor: isDragging ? "grabbing" : "grab",
+          userSelect: "none",
+          touchAction: "none",
+          transition: "background 0.15s ease",
         }}
+        title="Drag to move chat window"
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {/* Drag grip icon */}
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="rgba(255,255,255,0.4)">
+            <circle cx="8" cy="6" r="2"/><circle cx="16" cy="6" r="2"/>
+            <circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/>
+            <circle cx="8" cy="18" r="2"/><circle cx="16" cy="18" r="2"/>
+          </svg>
           <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#818cf8" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>

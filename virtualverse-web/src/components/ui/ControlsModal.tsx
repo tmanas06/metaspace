@@ -21,9 +21,10 @@ export function ControlsModal({ isOpen, onClose }: ControlsModalProps) {
           </h2>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+            className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition-colors shrink-0"
+            title="Close modal"
           >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -50,15 +51,15 @@ export function ControlsModal({ isOpen, onClose }: ControlsModalProps) {
           <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
             <div className="font-semibold text-white">Spatial Video & Voice</div>
             <p className="text-zinc-400 leading-relaxed text-[11px]">
-              Walk your avatar near another user within 80 pixels radius. LiveKit video and audio will automatically connect when close, and disconnect when moving away.
+              Walk your avatar near another user within 80 pixels radius. LiveKit video and audio will automatically connect when close, and disconnect when moving away. On mobile, flip between Front and Back camera using the camera flip icon.
             </p>
           </div>
         </div>
 
-        <div className="p-3 bg-white/[0.01] border-t border-white/10 flex justify-end">
+        <div className="p-3.5 bg-white/[0.01] border-t border-white/10 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold transition-colors"
+            className="px-5 py-2.5 min-h-[40px] bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold transition-colors flex items-center justify-center"
           >
             Got It
           </button>

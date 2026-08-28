@@ -35,6 +35,7 @@ export interface LiveKitState {
   remoteVideoElements: Map<string, HTMLVideoElement>;
   micEnabled: boolean;
   camEnabled: boolean;
+  facingMode: "user" | "environment";
 }
 
 type StatusCallback = (state: LiveKitState) => void;
@@ -55,6 +56,7 @@ class LiveKitManager {
     remoteVideoElements: new Map(),
     micEnabled: true,
     camEnabled: true,
+    facingMode: "user",
   };
 
   // Debounce timers & locks
@@ -133,9 +135,25 @@ class LiveKitManager {
     this.setState({ camEnabled: enabled });
     if (this.room && this.state.status === "connected") {
       try {
-        await this.room.localParticipant.setCameraEnabled(enabled);
+        await this.room.localParticipant.setCameraEnabled(enabled, {
+          facingMode: this.state.facingMode,
+        });
       } catch (err) {
         console.warn("[LiveKit] Failed to toggle camera:", err);
+      }
+    }
+  }
+
+  async setCameraFacingMode(facingMode: "user" | "environment") {
+    this.setState({ facingMode });
+    if (this.room && this.state.status === "connected" && this.state.camEnabled) {
+      try {
+        // Re-enable camera with new facingMode option
+        await this.room.localParticipant.setCameraEnabled(true, {
+          facingMode,
+        });
+      } catch (err) {
+        console.warn("[LiveKit] Failed to switch camera facingMode:", err);
       }
     }
   }

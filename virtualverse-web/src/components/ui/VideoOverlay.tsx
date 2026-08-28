@@ -33,6 +33,7 @@ export function VideoOverlay({
 }: VideoOverlayProps) {
   const [isMicOn, setIsMicOn] = useState(true);
   const [isCamOn, setIsCamOn] = useState(false);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -52,16 +53,28 @@ export function VideoOverlay({
     });
   };
 
+  const handleToggleFacingMode = () => {
+    const nextMode = facingMode === "user" ? "environment" : "user";
+    setFacingMode(nextMode);
+    import("@/lib/livekit").then(({ liveKitManager }) => {
+      liveKitManager.setCameraFacingMode(nextMode);
+    });
+  };
+
   // Local camera self-preview stream
   useEffect(() => {
     if (isCamOn) {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      }
       import("@/lib/livekit").then(({ liveKitManager }) => {
         const localTrack = liveKitManager.getLocalVideoTrack();
         if (localTrack && localVideoRef.current) {
           localTrack.attach(localVideoRef.current);
         } else {
           navigator.mediaDevices
-            ?.getUserMedia({ video: true, audio: false })
+            ?.getUserMedia({ video: { facingMode }, audio: false })
             .then((stream) => {
               streamRef.current = stream;
               if (localVideoRef.current) {
@@ -86,7 +99,7 @@ export function VideoOverlay({
         streamRef.current.getTracks().forEach((t) => t.stop());
       }
     };
-  }, [isCamOn]);
+  }, [isCamOn, facingMode]);
 
   const isProximityActive =
     livekitState?.status === "connected" || livekitState?.status === "connecting";
@@ -147,8 +160,8 @@ export function VideoOverlay({
             <div
               style={{
                 position: "relative",
-                width: 176,
-                height: 128,
+                width: "min(176px, calc(42vw - 12px))",
+                height: "min(128px, calc(30vw - 8px))",
                 borderRadius: 14,
                 overflow: "hidden",
                 border: "1.5px solid rgba(99,102,241,0.6)",
@@ -165,9 +178,36 @@ export function VideoOverlay({
                   width: "100%",
                   height: "100%",
                   objectFit: "cover",
-                  transform: "scaleX(-1)",
+                  transform: facingMode === "user" ? "scaleX(-1)" : "scaleX(1)",
                 }}
               />
+              {/* Flip Camera Overlay Button */}
+              <button
+                onClick={handleToggleFacingMode}
+                title={`Switch camera (Current: ${facingMode === "user" ? "Front" : "Back"})`}
+                style={{
+                  position: "absolute",
+                  top: 6,
+                  right: 6,
+                  background: "rgba(15, 23, 42, 0.82)",
+                  backdropFilter: "blur(8px)",
+                  border: "1px solid rgba(255, 255, 255, 0.25)",
+                  color: "#fff",
+                  borderRadius: 8,
+                  width: 28,
+                  height: 28,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  zIndex: 10,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                }}
+              >
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
               <div
                 style={{
                   position: "absolute",
@@ -212,11 +252,11 @@ export function VideoOverlay({
           {/* Remote Proximity Video Tiles */}
           {livekitState?.remoteVideoTracks && livekitState.remoteVideoTracks.size > 0
             ? Array.from(livekitState.remoteVideoTracks.entries()).map(([identity, track]) => (
-                <RemoteVideoTile key={identity} identity={identity} track={track} />
-              ))
+              <RemoteVideoTile key={identity} identity={identity} track={track} />
+            ))
             : Array.from(remoteVideoElements.entries()).map(([identity, videoEl]) => (
-                <RemoteVideoTile key={identity} identity={identity} videoEl={videoEl} />
-              ))}
+              <RemoteVideoTile key={identity} identity={identity} videoEl={videoEl} />
+            ))}
 
           {/* Fallback Audio Tile if connected to peer but peer camera is OFF */}
           {livekitState?.status === "connected" && !hasRemoteVideo && targetPeerId && (
@@ -493,7 +533,7 @@ function RemoteVideoTile({
       return () => {
         try {
           track.detach(el);
-        } catch {}
+        } catch { }
       };
     } else if (videoEl) {
       const container = document.getElementById(`remote-tile-${identity}`);
@@ -510,7 +550,7 @@ function RemoteVideoTile({
       return () => {
         try {
           container?.removeChild(videoEl);
-        } catch {}
+        } catch { }
       };
     }
   }, [identity, videoEl, track]);
@@ -604,8 +644,10 @@ function BarIconBtn({
         background: hov ? "rgba(255,255,255,0.09)" : "transparent",
         border: "none",
         borderRadius: 10,
-        color: hov ? "#fff" : "rgba(255,255,255,0.55)",
+        color: hov ? "#fff" : "rgba(255,255,255,0.7)",
         padding: "6px 8px",
+        minWidth: 40,
+        minHeight: 40,
         cursor: "pointer",
         display: "flex",
         alignItems: "center",
@@ -647,6 +689,8 @@ function MediaBtn({
         borderRadius: 11,
         color: active ? "#fff" : "#fca5a5",
         padding: "7px 8px",
+        minWidth: 40,
+        minHeight: 40,
         cursor: "pointer",
         display: "flex",
         alignItems: "center",

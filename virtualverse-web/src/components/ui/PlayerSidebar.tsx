@@ -17,6 +17,8 @@ interface PlayerSidebarProps {
   defaultCollapsed?: boolean;
   /** Called whenever the sidebar collapses or expands. */
   onCollapsedChange?: (collapsed: boolean) => void;
+  /** Optional callback to close mobile drawer when used as an overlay. */
+  onCloseMobileDrawer?: () => void;
 }
 
 /** Deterministic hue from a string so each player gets a consistent colour. */
@@ -65,6 +67,7 @@ export function PlayerSidebar({
   onInvite,
   defaultCollapsed = false,
   onCollapsedChange,
+  onCloseMobileDrawer,
 }: PlayerSidebarProps) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [search, setSearch] = useState("");
@@ -216,17 +219,25 @@ export function PlayerSidebar({
           </span>
         </div>
 
-        {/* Collapse chevron */}
+        {/* Collapse chevron / Close button */}
         <button
-          onClick={() => handleCollapse(true)}
-          title="Collapse sidebar"
+          onClick={() => {
+            if (onCloseMobileDrawer) {
+              onCloseMobileDrawer();
+            } else {
+              handleCollapse(true);
+            }
+          }}
+          title={onCloseMobileDrawer ? "Close menu" : "Collapse sidebar"}
           style={{
             background: "none",
             border: "none",
             color: "rgba(255,255,255,0.4)",
             cursor: "pointer",
-            padding: 4,
-            borderRadius: 6,
+            padding: 6,
+            minWidth: 36,
+            minHeight: 36,
+            borderRadius: 8,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -235,9 +246,15 @@ export function PlayerSidebar({
           onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.8)")}
           onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.4)")}
         >
-          <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+          {onCloseMobileDrawer ? (
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          )}
         </button>
       </div>
 

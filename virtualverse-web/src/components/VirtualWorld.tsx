@@ -61,13 +61,14 @@ export function VirtualWorld() {
   const [isChatOpen, setIsChatOpen] = useState(true);
 
   // Responsive: track sidebar width so the canvas wrapper shifts correctly.
-  // On mobile the sidebar starts collapsed (44 px) so the canvas fills the screen.
+  // On mobile screen width is 0 so the canvas fills 100% of the viewport.
   const isMobile = useIsMobile();
   const [sidebarWidth, setSidebarWidth] = useState(220);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
-  // When mobile status becomes known, collapse the sidebar immediately.
+  // When mobile status becomes known, set sidebarWidth to 0 for mobile or 220 for desktop.
   useEffect(() => {
-    if (isMobile) setSidebarWidth(44);
+    if (isMobile) setSidebarWidth(0);
     else setSidebarWidth(220);
   }, [isMobile]);
 
@@ -157,37 +158,138 @@ export function VirtualWorld() {
         overflow: "hidden",
       }}
     >
-      {/* ── Left Sidebar — absolute, sits on the left edge ── */}
-      <div
-        id="sidebar-wrapper"
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          bottom: 0,
-          width: sidebarWidth,
-          zIndex: 20,
-        }}
-      >
-        <PlayerSidebar
-          appName="VirtualVerse"
-          players={players}
-          localUsername={username}
-          onOpenMapSelector={() => setIsMapModalOpen(true)}
-          onOpenControls={() => setIsControlsOpen(true)}
-          onOpenPermissions={() => setIsPermissionsOpen(true)}
-          onLeave={handleLeave}
-          defaultCollapsed={isMobile}
-          onCollapsedChange={(collapsed) => setSidebarWidth(collapsed ? 44 : 220)}
-          onInvite={() => {
-            // Build invite URL with current map encoded as a ?map= query param
-            // so the invited user lands on the same map automatically.
-            const base = window.location.origin + window.location.pathname;
-            const mapId = selectedMapData.id || selectedMapData.name;
-            return `${base}?map=${encodeURIComponent(mapId)}`;
+      {/* ── Left Sidebar (Desktop Only) ── */}
+      {!isMobile && (
+        <div
+          id="sidebar-wrapper"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            bottom: 0,
+            width: sidebarWidth,
+            zIndex: 20,
           }}
-        />
-      </div>
+        >
+          <PlayerSidebar
+            appName="VirtualVerse"
+            players={players}
+            localUsername={username}
+            onOpenMapSelector={() => setIsMapModalOpen(true)}
+            onOpenControls={() => setIsControlsOpen(true)}
+            onOpenPermissions={() => setIsPermissionsOpen(true)}
+            onLeave={handleLeave}
+            defaultCollapsed={false}
+            onCollapsedChange={(collapsed) => setSidebarWidth(collapsed ? 44 : 220)}
+            onInvite={() => {
+              const base = window.location.origin + window.location.pathname;
+              const mapId = selectedMapData.id || selectedMapData.name;
+              return `${base}?map=${encodeURIComponent(mapId)}`;
+            }}
+          />
+        </div>
+      )}
+
+      {/* ── Mobile Top-Left Menu / Drawer Toggle Button ── */}
+      {isMobile && (
+        <button
+          id="mobile-drawer-toggle"
+          onClick={() => setIsMobileDrawerOpen(true)}
+          style={{
+            position: "absolute",
+            top: "max(12px, env(safe-area-inset-top, 0px))",
+            left: 12,
+            zIndex: 35,
+            background: "rgba(15, 23, 42, 0.88)",
+            border: "1px solid rgba(255, 255, 255, 0.15)",
+            backdropFilter: "blur(12px)",
+            borderRadius: 14,
+            padding: "6px 12px 6px 8px",
+            color: "#fff",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            cursor: "pointer",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+          }}
+          title="Open Players & Menu"
+        >
+          {/* Hamburger / User Icon */}
+          <div
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: "50%",
+              background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 11,
+              fontWeight: 700,
+            }}
+          >
+            {(username || "U").slice(0, 2).toUpperCase()}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", lineHeight: 1.2 }}>
+            <span style={{ fontSize: 12, fontWeight: 700 }}>Menu</span>
+            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)" }}>{players.length} active</span>
+          </div>
+        </button>
+      )}
+
+      {/* ── Mobile Sliding Drawer & Backdrop ── */}
+      {isMobile && isMobileDrawerOpen && (
+        <>
+          {/* Backdrop Blur */}
+          <div
+            onClick={() => setIsMobileDrawerOpen(false)}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0, 0, 0, 0.65)",
+              backdropFilter: "blur(4px)",
+              zIndex: 45,
+            }}
+          />
+          {/* Sliding Panel */}
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              bottom: 0,
+              left: 0,
+              width: "min(280px, 85vw)",
+              zIndex: 50,
+              boxShadow: "8px 0 32px rgba(0,0,0,0.6)",
+            }}
+          >
+            <PlayerSidebar
+              appName="VirtualVerse"
+              players={players}
+              localUsername={username}
+              onOpenMapSelector={() => {
+                setIsMapModalOpen(true);
+                setIsMobileDrawerOpen(false);
+              }}
+              onOpenControls={() => {
+                setIsControlsOpen(true);
+                setIsMobileDrawerOpen(false);
+              }}
+              onOpenPermissions={() => {
+                setIsPermissionsOpen(true);
+                setIsMobileDrawerOpen(false);
+              }}
+              onLeave={handleLeave}
+              onCloseMobileDrawer={() => setIsMobileDrawerOpen(false)}
+              onInvite={() => {
+                const base = window.location.origin + window.location.pathname;
+                const mapId = selectedMapData.id || selectedMapData.name;
+                return `${base}?map=${encodeURIComponent(mapId)}`;
+              }}
+            />
+          </div>
+        </>
+      )}
 
       {/* ── Main Canvas Area — absolute, fills everything right of sidebar ── */}
       <div
@@ -229,11 +331,9 @@ export function VirtualWorld() {
             <div
               style={{
                 position: "absolute",
-                // Sit above the bottom control bar (≈68px tall) plus a small gap
-                bottom: "max(80px, calc(68px + env(safe-area-inset-bottom, 0px) + 12px))",
-                left: 16,
-                // On narrow phones don't let the chat panel run wider than the canvas
-                maxWidth: "calc(100% - 32px)",
+                bottom: "max(76px, calc(62px + env(safe-area-inset-bottom, 0px) + 8px))",
+                left: 12,
+                maxWidth: "calc(100% - 24px)",
                 zIndex: 25,
                 pointerEvents: "auto",
               }}
@@ -248,8 +348,8 @@ export function VirtualWorld() {
           </div>
         </div>
 
-        {/* Mobile virtual joystick — only shown on touch devices */}
-        {isMobile && <MobileJoystick right={16} bottom={96} />}
+        {/* Mobile virtual joystick — rendered on touch devices */}
+        {isMobile && <MobileJoystick right={14} bottom={84} />}
 
         {/* Error toast */}
         {activeError && (
@@ -599,9 +699,9 @@ function JoinScreen({
           <div className="js-logo-row" style={fi(0)}>
             <div className="js-logo-icon" aria-hidden>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                <path d="M2 12h20"/>
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                <path d="M2 12h20" />
               </svg>
             </div>
             <span className="js-logo-text">VirtualVerse</span>
@@ -642,8 +742,8 @@ function JoinScreen({
               <div className="js-input-wrap">
                 <span className="js-input-icon" aria-hidden>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                    <circle cx="12" cy="7" r="4"/>
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
                   </svg>
                 </span>
                 <input
@@ -731,7 +831,7 @@ function JoinScreen({
                 aria-label={usernameValue.trim() ? `Enter VirtualVerse as ${usernameValue}` : "Enter a username to continue"}
               >
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <polygon points="5 3 19 12 5 21 5 3"/>
+                  <polygon points="5 3 19 12 5 21 5 3" />
                 </svg>
                 Enter {selectedMapData.name}
               </button>

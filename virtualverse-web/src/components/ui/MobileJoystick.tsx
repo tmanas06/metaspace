@@ -33,8 +33,12 @@ export function MobileJoystick({ right = 24, bottom = 96 }: MobileJoystickProps)
   const resetJoystick = useCallback(() => {
     originRef.current = null;
     activeIdRef.current = null;
+    if (baseRef.current) {
+      baseRef.current.classList.remove("joystick-active");
+    }
     if (thumbRef.current) {
       thumbRef.current.style.transform = "translate(-50%, -50%) translate(0px, 0px)";
+      thumbRef.current.style.background = "linear-gradient(135deg, #6366f1, #8b5cf6)";
     }
     gameBridge.setTouchInput({ left: false, right: false, up: false, down: false });
   }, []);
@@ -50,6 +54,12 @@ export function MobileJoystick({ right = 24, bottom = 96 }: MobileJoystickProps)
       const t = e.changedTouches[0];
       activeIdRef.current = t.identifier;
       originRef.current = { x: t.clientX, y: t.clientY };
+      if (baseRef.current) {
+        baseRef.current.classList.add("joystick-active");
+      }
+      if (thumbRef.current) {
+        thumbRef.current.style.background = "linear-gradient(135deg, #818cf8, #a855f7)";
+      }
     };
 
     const onTouchMove = (e: TouchEvent) => {

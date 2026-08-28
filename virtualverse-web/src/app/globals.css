@@ -51,9 +51,9 @@ body {
   touch-action: none;
 }
 
-/* On very narrow screens (phones in portrait), hide the username text in the
+/* On narrow screens (phones in portrait), hide the username text in the
    bottom bar so the bar doesn't overflow the screen width. */
-@media (max-width: 400px) {
+@media (max-width: 480px) {
   .username-label {
     display: none !important;
   }
@@ -64,4 +64,38 @@ body {
   0%,  100% { box-shadow: 0 0 0 1px rgba(99,102,241,0.15), 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08); }
   50%        { box-shadow: 0 0 0 4px rgba(99,102,241,0.25), 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08); }
 }
+
+/* Joystick active glow animation when dragged */
+.joystick-active {
+  box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.4), 0 0 20px rgba(99, 102, 241, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  border-color: rgba(129, 140, 248, 0.9) !important;
+}
+
+/* Mobile drawer transition */
+.mobile-drawer-enter {
+  transform: translateX(-100%);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.mobile-drawer-open {
+  transform: translateX(0%);
+}
+
+/* Mobile responsive touch target sizing helper */
+.touch-target-min {
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Camera flip spin feedback animation */
+@keyframes flip-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(180deg); }
+}
+.animate-flip-spin {
+  animation: flip-spin 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 
