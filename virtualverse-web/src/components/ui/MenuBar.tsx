@@ -13,6 +13,8 @@ interface MenuBarProps {
   onOpenPermissions: () => void;
   onOpenAvatarCustomizer?: () => void;
   onLeave: () => void;
+  onToggleSidebar?: () => void;
+  isSidebarCollapsed?: boolean;
 }
 
 export function MenuBar({
@@ -25,6 +27,8 @@ export function MenuBar({
   onOpenPermissions,
   onOpenAvatarCustomizer,
   onLeave,
+  onToggleSidebar,
+  isSidebarCollapsed,
 }: MenuBarProps) {
   const getStatusBadge = (status: ConnectionStatus) => {
     switch (status) {
@@ -42,20 +46,33 @@ export function MenuBar({
   const cBadge = getStatusBadge(colyseusStatus);
 
   return (
-    <header className="w-full bg-[#0f172a]/90 backdrop-blur-md border-b border-white/10 px-4 py-2.5 flex items-center justify-between shadow-lg relative z-30">
-      {/* Left: Brand + Map info */}
-      <div className="flex items-center gap-4">
+    <header className="w-full bg-[#07130b]/95 backdrop-blur-md border-b border-emerald-500/20 px-4 py-2.5 flex items-center justify-between shadow-lg relative z-30">
+      {/* Left: Sidebar Toggle + Brand + Map info */}
+      <div className="flex items-center gap-3">
+        {/* Sidebar Toggle Button */}
+        {onToggleSidebar && (
+          <button
+            onClick={onToggleSidebar}
+            title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 hover:text-emerald-300 transition-colors flex items-center justify-center cursor-pointer"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
+            </svg>
+          </button>
+        )}
+
         {/* Brand */}
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-inner">
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064" />
-            </svg>
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 via-teal-500 to-green-500 flex items-center justify-center shadow-md shadow-emerald-500/30 text-base">
+            🌐
           </div>
-          <span className="text-white font-bold tracking-tight text-sm">VirtualVerse</span>
+          <span className="font-extrabold tracking-tight text-sm text-transparent bg-clip-text bg-gradient-to-r from-white via-emerald-100 to-green-300">
+            VirtualVerse
+          </span>
         </div>
 
-        <div className="h-4 w-px bg-white/10" />
+        <div className="h-4 w-px bg-emerald-500/20" />
 
         {/* Map Preset Button */}
         <button

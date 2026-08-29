@@ -192,12 +192,27 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
     }
   };
 
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
   const handleLeave = () => {
     colyseus.disconnect();
     import("@/lib/livekit").then(({ liveKitManager }) => {
       liveKitManager.disconnectProximityRoom();
     });
     setJoined(false);
+  };
+
+  const handleSidebarCollapse = (collapsed: boolean) => {
+    setIsSidebarCollapsed(collapsed);
+    const newWidth = collapsed ? 48 : 220;
+    setSidebarWidth(newWidth);
+    setTimeout(() => {
+      window.dispatchEvent(new Event("resize"));
+    }, 260);
+  };
+
+  const handleToggleSidebar = () => {
+    handleSidebarCollapse(!isSidebarCollapsed);
   };
 
   if (!joined) {
@@ -210,6 +225,7 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
         selectedMapData={selectedMapData}
         onSelectMap={setSelectedMapData}
         authenticated={authenticated}
+        onBack={onBack}
       />
     );
   }
@@ -219,7 +235,7 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
       style={{
         position: "fixed",
         inset: 0,
-        background: "#0d0d1a",
+        background: "#050b07",
         overflow: "hidden",
       }}
     >
@@ -234,6 +250,8 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
             bottom: 0,
             width: sidebarWidth,
             zIndex: 20,
+            transition: "width 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+            overflow: "hidden",
           }}
         >
           <PlayerSidebar
@@ -244,6 +262,7 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
             onOpenControls={() => setIsControlsOpen(true)}
             onOpenPermissions={() => setIsPermissionsOpen(true)}
             onLeave={handleLeave}
+            onCollapsedChange={handleSidebarCollapse}
           />
         </div>
       )}
@@ -255,7 +274,7 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
           top: 0,
           right: 0,
           bottom: 0,
-          left: sidebarWidth,
+          left: isMobile ? 0 : sidebarWidth,
           display: "flex",
           flexDirection: "column",
           transition: "left 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
@@ -272,6 +291,8 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
           onOpenPermissions={() => setIsPermissionsOpen(true)}
           onOpenAvatarCustomizer={() => setIsAvatarModalOpen(true)}
           onLeave={handleLeave}
+          onToggleSidebar={handleToggleSidebar}
+          isSidebarCollapsed={isSidebarCollapsed}
         />
 
         {/* Game Canvas Container */}
@@ -280,7 +301,8 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
 
           {/* Floating Proximity Video Tiles (top-right of canvas) */}
           <VideoOverlay
-            remoteVideoElements={new Map()}
+            livekitState={livekit}
+            remoteVideoElements={livekit.remoteVideoElements}
             username={username}
             onOpenMapSelector={() => setIsMapModalOpen(true)}
             onOpenControls={() => setIsControlsOpen(true)}
@@ -338,9 +360,18 @@ interface EntryChoiceScreenProps {
   selectedMapData: MapPresetData;
   onSelectMap: (map: MapPresetData) => void;
   authenticated: boolean;
+  onBack?: () => void;
 }
 
-const MAP_ACCENTS = ["#6366f1", "#8b5cf6", "#ec4899", "#10b981", "#f59e0b", "#3b82f6", "#14b8a6"];
+const MAP_ICONS: Record<string, string> = {
+  startup_office: "🏢",
+  classroom: "🎓",
+  coastal_resort: "🌴",
+  event_hall: "🏛️",
+  cyberpunk_lounge: "🍸",
+  scifi_station: "🚀",
+  playground: "🏀",
+};
 
 function EntryChoiceScreen({
   onGuestJoin,
@@ -350,81 +381,127 @@ function EntryChoiceScreen({
   selectedMapData,
   onSelectMap,
   authenticated,
+  onBack,
 }: EntryChoiceScreenProps) {
   return (
-    <div className="fixed inset-0 bg-[#060612] text-white flex items-center justify-center p-4 overflow-y-auto">
-      <div className="w-full max-w-lg bg-[#0e0e1e] border border-[#242445] rounded-3xl p-8 shadow-2xl relative">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/30 text-3xl">
-            🌌
+    <div className="fixed inset-0 bg-[#040c07] text-white flex items-center justify-center p-4 sm:p-6 overflow-y-auto relative">
+      {/* Dynamic ambient radial glows */}
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-emerald-500/12 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-10 left-10 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-[100px] pointer-events-none" />
+
+      <div className="w-full max-w-4xl bg-[#08170e]/90 border border-emerald-500/25 backdrop-blur-2xl rounded-3xl p-6 sm:p-10 shadow-[0_0_80px_rgba(16,185,129,0.2)] relative z-10 my-auto">
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="absolute top-6 left-6 text-xs sm:text-sm text-emerald-400/70 hover:text-emerald-300 flex items-center gap-1.5 transition-colors font-medium cursor-pointer"
+          >
+            ← Back to Home
+          </button>
+        )}
+
+        <div className="text-center mb-8 mt-2 sm:mt-0">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 rounded-2xl overflow-hidden border border-emerald-500/30 shadow-xl shadow-emerald-500/30">
+            <img src="/virtualverse-icon.jpg" alt="VirtualVerse" className="w-full h-full object-cover" />
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-white via-gray-100 to-indigo-200 bg-clip-text text-transparent">
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight bg-gradient-to-r from-white via-emerald-100 to-green-300 bg-clip-text text-transparent">
             Welcome to VirtualVerse
           </h1>
-          <p className="text-xs text-gray-400 mt-2">
-            Choose how you would like to enter the world
+          <p className="text-xs sm:text-sm text-emerald-300/70 mt-2 max-w-md mx-auto">
+            Choose a world map and your identity to enter the real-time spatial metaverse
           </p>
         </div>
 
-        {/* Map Selection */}
+        {/* Map Selection Grid */}
         <div className="mb-8">
-          <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-3">
-            Select World Map
-          </label>
-          <div className="grid grid-cols-2 gap-2.5 max-h-48 overflow-y-auto pr-1">
-            {presets.map((preset, i) => {
-              const accent = MAP_ACCENTS[i % MAP_ACCENTS.length];
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+              1. Select World Map
+            </label>
+            <span className="text-[11px] text-emerald-400/60 font-medium">
+              {presets.length} spaces available
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 max-h-[340px] overflow-y-auto pr-1">
+            {presets.map((preset) => {
               const isSelected = (preset.id || preset.name) === (selectedMapData.id || selectedMapData.name);
+              const mapIcon = MAP_ICONS[preset.id] || preset.icon || "🗺️";
+
               return (
                 <button
                   key={preset.id || preset.name}
                   type="button"
                   onClick={() => onSelectMap(preset)}
-                  className={`p-3 rounded-2xl border text-left transition-all relative ${
+                  className={`p-4 rounded-2xl border text-left transition-all duration-200 relative group cursor-pointer ${
                     isSelected
-                      ? "border-indigo-500 bg-indigo-500/15 text-white shadow-md shadow-indigo-500/20"
-                      : "border-[#202040] bg-[#14142b] text-gray-400 hover:border-gray-600 hover:text-white"
+                      ? "border-emerald-400 bg-emerald-500/20 text-white shadow-lg shadow-emerald-500/25 ring-1 ring-emerald-400/40"
+                      : "border-emerald-900/40 bg-[#0c1e13] text-emerald-300/70 hover:border-emerald-500/40 hover:bg-[#0e2417] hover:text-white"
                   }`}
                 >
-                  <div className="font-semibold text-xs text-white truncate">{preset.name}</div>
-                  <div className="text-[11px] text-gray-400 truncate">{preset.theme || "Spatial Map"}</div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-2xl">{mapIcon}</span>
+                    <div className="font-bold text-xs sm:text-sm text-white truncate leading-tight">
+                      {preset.name}
+                    </div>
+                  </div>
+                  <div className="text-[11px] text-emerald-400/70 truncate mb-1">
+                    {preset.theme || "Spatial Map"}
+                  </div>
+                  {preset.description && (
+                    <div className="text-[10px] text-emerald-300/40 line-clamp-2 leading-relaxed">
+                      {preset.description}
+                    </div>
+                  )}
+                  {isSelected && (
+                    <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
+                  )}
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Identity Choice Actions */}
-        <div className="space-y-4">
-          <button
-            onClick={onGuestJoin}
-            disabled={joining}
-            className="w-full py-3.5 px-6 rounded-2xl font-bold text-white bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-550 shadow-lg shadow-emerald-500/25 transition-all transform active:scale-98 flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50"
-          >
-            <span className="text-lg">⚡</span>
-            <div className="text-left">
-              <div className="text-sm">Continue as Guest</div>
-              <div className="text-[11px] text-emerald-100/80 font-normal">
-                Instant entry · Zero auth · Ephemeral guest-xxxx session
-              </div>
-            </div>
-          </button>
+        {/* Identity Choice Actions Grid */}
+        <div>
+          <label className="block text-xs font-bold text-emerald-400 uppercase tracking-wider mb-3">
+            2. Choose Identity & Launch
+          </label>
 
-          <button
-            onClick={onAuthJoin}
-            disabled={joining}
-            className="w-full py-3.5 px-6 rounded-2xl font-bold text-white bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:opacity-95 shadow-lg shadow-indigo-500/25 transition-all transform active:scale-98 flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50"
-          >
-            <span className="text-lg">🔑</span>
-            <div className="text-left">
-              <div className="text-sm">
-                {authenticated ? "Enter as Privy User" : "Log in with Privy"}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <button
+              onClick={onGuestJoin}
+              disabled={joining}
+              className="p-5 rounded-2xl font-bold text-white bg-gradient-to-br from-emerald-500 via-teal-600 to-emerald-700 hover:from-emerald-400 hover:to-teal-500 border border-emerald-400/30 shadow-xl shadow-emerald-500/25 transition-all transform active:scale-98 flex items-start gap-4 cursor-pointer disabled:opacity-50 text-left"
+            >
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-xl shrink-0">
+                ⚡
               </div>
-              <div className="text-[11px] text-indigo-100/80 font-normal">
-                Owned ERC-1155 avatar cosmetics · Custom display name
+              <div>
+                <div className="text-base font-extrabold text-white">Continue as Guest</div>
+                <div className="text-xs text-emerald-100/80 font-normal mt-0.5 leading-snug">
+                  Instant zero-auth entry with ephemeral <code className="bg-emerald-950/60 px-1 py-0.5 rounded text-emerald-200">guest-xxxx</code> display name
+                </div>
               </div>
-            </div>
-          </button>
+            </button>
+
+            <button
+              onClick={onAuthJoin}
+              disabled={joining}
+              className="p-5 rounded-2xl font-bold text-white bg-gradient-to-br from-teal-600 via-emerald-600 to-green-700 hover:from-teal-500 hover:to-green-600 border border-teal-400/30 shadow-xl shadow-teal-500/25 transition-all transform active:scale-98 flex items-start gap-4 cursor-pointer disabled:opacity-50 text-left"
+            >
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-xl shrink-0">
+                🔑
+              </div>
+              <div>
+                <div className="text-base font-extrabold text-white">
+                  {authenticated ? "Enter as Privy User" : "Log in with Privy"}
+                </div>
+                <div className="text-xs text-teal-100/80 font-normal mt-0.5 leading-snug">
+                  Full profile with customizable ERC-1155 cosmetics & wallet identity
+                </div>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
     </div>
