@@ -12,6 +12,7 @@ interface MenuBarProps {
   onOpenControls: () => void;
   onOpenPermissions: () => void;
   onOpenAvatarCustomizer?: () => void;
+  onOpenProfile?: () => void;
   onLeave: () => void;
   onToggleSidebar?: () => void;
   isSidebarCollapsed?: boolean;
@@ -26,6 +27,7 @@ export function MenuBar({
   onOpenControls,
   onOpenPermissions,
   onOpenAvatarCustomizer,
+  onOpenProfile,
   onLeave,
   onToggleSidebar,
   isSidebarCollapsed,
@@ -90,22 +92,24 @@ export function MenuBar({
         </button>
       </div>
 
-      {/* Center: Quick Navigation Action Items */}
-      <nav className="hidden md:flex items-center gap-2">
-        <button
-          onClick={onOpenMapSelector}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/5 transition-colors"
-        >
-          <svg className="w-3.5 h-3.5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-          </svg>
-          <span>Map Gallery</span>
-        </button>
+      {/* Centre Nav Controls */}
+      <nav className="hidden md:flex items-center gap-1">
+        {onOpenProfile && (
+          <button
+            onClick={onOpenProfile}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-300 hover:text-white hover:bg-emerald-500/10 transition-colors"
+            title="View Profile & Wallet"
+          >
+            <span>👤</span>
+            <span>Profile & Wallet</span>
+          </button>
+        )}
 
         {onOpenAvatarCustomizer && (
           <button
             onClick={onOpenAvatarCustomizer}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/5 transition-colors"
+            title="Customize Avatar & Equipment"
           >
             <span>🎨</span>
             <span>Avatar</span>
@@ -133,17 +137,21 @@ export function MenuBar({
         </button>
       </nav>
 
-      {/* Right: User + Status + Leave */}
+      {/* Right: User Status Pill + Leave */}
       <div className="flex items-center gap-3">
-        {/* Status Indicator */}
-        <div className={`flex items-center gap-2 bg-white/5 border ${cBadge.border} px-3 py-1 rounded-full text-xs font-mono text-zinc-300`}>
-          <span className="font-semibold text-white truncate max-w-[100px]">{username}</span>
+        {/* Status Indicator / Profile Trigger */}
+        <button
+          onClick={onOpenProfile}
+          className={`flex items-center gap-2 bg-white/5 hover:bg-white/10 border ${cBadge.border} px-3 py-1 rounded-full text-xs font-mono text-zinc-300 transition-colors cursor-pointer`}
+          title="Click to view Profile & Wallet"
+        >
+          <span className="font-semibold text-white truncate max-w-[120px]">{username}</span>
           <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
           <div className="flex items-center gap-1.5">
             <span className={`w-2 h-2 rounded-full ${cBadge.color}`} />
             <span>{cBadge.text}</span>
           </div>
-        </div>
+        </button>
 
         {/* Leave World Button */}
         <button

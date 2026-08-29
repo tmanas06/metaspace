@@ -12,6 +12,7 @@ import { MapSelectorModal } from "@/components/ui/MapSelectorModal";
 import { PermissionsModal } from "@/components/ui/PermissionsModal";
 import { ControlsModal } from "@/components/ui/ControlsModal";
 import { AvatarCustomizerModal } from "@/components/ui/AvatarCustomizerModal";
+import { UserProfileModal } from "@/components/ui/UserProfileModal";
 import { MenuBar } from "@/components/ui/MenuBar";
 import { useColyseus } from "@/hooks/useColyseus";
 import { useLiveKit } from "@/hooks/useLiveKit";
@@ -58,6 +59,7 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
   const [isPermissionsOpen, setIsPermissionsOpen] = useState(false);
   const [isControlsOpen, setIsControlsOpen] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(true);
 
   const isMobile = useIsMobile();
@@ -113,6 +115,7 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
     setJoining(true);
     try {
       const res = await joinRoomAsGuest(selectedMapData.id);
+      console.log("[GuestJoin] Guest join response:", res);
       setIsGuest(true);
       setUsername(res.displayName);
       setAvatarConfig(res.avatarConfig);
@@ -127,7 +130,6 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
       gameBridge.setMapTheme(selectedMapData);
     } catch (e) {
       console.error("[GuestJoin] Error joining as guest:", e);
-    } finally {
       setJoining(false);
     }
   };
@@ -139,12 +141,16 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
         login();
         return;
       }
+      
+      // Get fresh access token - this will auto-refresh if needed
       const token = await getAccessToken();
+      console.log("[AuthJoin] Got access token:", token ? "present" : "MISSING");
       if (!token) {
-        throw new Error("Privy access token unavailable");
+        throw new Error("Privy access token unavailable - try logging in again");
       }
 
       const res = await joinRoomAuthenticated(selectedMapData.id, token);
+      console.log("[AuthJoin] Authenticated join response:", res);
       setIsGuest(false);
       setUsername(res.displayName);
       setAvatarConfig(res.avatarConfig);
@@ -162,7 +168,7 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
       gameBridge.setMapTheme(selectedMapData);
     } catch (e) {
       console.error("[AuthJoin] Error joining authenticated:", e);
-    } finally {
+      // Reset joining state on error so user can retry
       setJoining(false);
     }
   };
@@ -290,6 +296,7 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
           onOpenControls={() => setIsControlsOpen(true)}
           onOpenPermissions={() => setIsPermissionsOpen(true)}
           onOpenAvatarCustomizer={() => setIsAvatarModalOpen(true)}
+          onOpenProfile={() => setIsProfileModalOpen(true)}
           onLeave={handleLeave}
           onToggleSidebar={handleToggleSidebar}
           isSidebarCollapsed={isSidebarCollapsed}
@@ -345,8 +352,17 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
         isGuest={isGuest}
         avatarConfig={avatarConfig}
         ownedCosmetics={ownedCosmetics}
-        privyToken={privyToken}
         onSaveAvatarConfig={handleSaveAvatarConfig}
+      />
+      <UserProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        username={username}
+        isGuest={isGuest}
+        avatarConfig={avatarConfig}
+        ownedCosmetics={ownedCosmetics}
+        privyToken={privyToken}
+        onSaveDisplayName={(newName) => setUsername(newName)}
       />
     </div>
   );

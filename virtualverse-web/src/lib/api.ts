@@ -2627,12 +2627,15 @@ export async function fetchRoomPresets(): Promise<MapPresetData[]> {
 }
 
 export interface CosmeticItem {
+  id?: string;
   tokenId: number;
   name: string;
-  slot: "skin" | "hat" | "accessory" | "clothing";
+  slot: "skin" | "hat" | "accessory" | "clothing" | "sbt";
+  type?: string;
   color?: string;
   icon?: string;
   balance?: number;
+  rarity?: string;
 }
 
 export interface JoinResponse {

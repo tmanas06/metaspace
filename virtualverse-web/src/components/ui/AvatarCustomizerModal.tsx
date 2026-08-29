@@ -10,7 +10,6 @@ interface AvatarCustomizerModalProps {
   isGuest: boolean;
   avatarConfig: any;
   ownedCosmetics: CosmeticItem[];
-  privyToken?: string | null;
   onSaveAvatarConfig: (newConfig: any) => Promise<void>;
 }
 
@@ -20,10 +19,9 @@ export function AvatarCustomizerModal({
   isGuest,
   avatarConfig,
   ownedCosmetics,
-  privyToken,
   onSaveAvatarConfig,
 }: AvatarCustomizerModalProps) {
-  const { login } = usePrivy();
+  const { login, getAccessToken } = usePrivy();
   const [selectedConfig, setSelectedConfig] = useState<any>(avatarConfig || { skin: 1, hat: null, accessory: null, clothing: null });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,8 +99,9 @@ export function AvatarCustomizerModal({
     setSaving(true);
     setError(null);
     try {
-      if (privyToken) {
-        await updateAvatarConfig(privyToken, selectedConfig);
+      const token = await getAccessToken();
+      if (token) {
+        await updateAvatarConfig(token, selectedConfig);
       }
       await onSaveAvatarConfig(selectedConfig);
       onClose();
