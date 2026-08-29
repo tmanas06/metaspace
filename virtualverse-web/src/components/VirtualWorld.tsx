@@ -200,12 +200,23 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  const handleLeave = () => {
-    colyseus.disconnect();
-    import("@/lib/livekit").then(({ liveKitManager }) => {
-      liveKitManager.disconnectProximityRoom();
-    });
+  const handleLeave = async () => {
+    try {
+      colyseus.disconnect();
+    } catch (err) {
+      console.warn("[VirtualWorld] Error disconnecting Colyseus:", err);
+    }
+    try {
+      const { liveKitManager } = await import("@/lib/livekit");
+      liveKitManager.disconnectProximityRoom().catch(() => {});
+    } catch (err) {
+      console.warn("[VirtualWorld] Error disconnecting LiveKit:", err);
+    }
     setJoined(false);
+    setJoining(false);
+    if (onBack) {
+      onBack();
+    }
   };
 
   const handleSidebarCollapse = (collapsed: boolean) => {
