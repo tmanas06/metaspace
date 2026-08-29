@@ -64,8 +64,8 @@ export function MenuBar({
 
         {/* Brand */}
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 via-teal-500 to-green-500 flex items-center justify-center shadow-md shadow-emerald-500/30 text-base">
-            🌐
+          <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 border border-emerald-500/30 shadow-md shadow-emerald-500/20">
+            <img src="/virtualverse-icon.jpg" alt="VirtualVerse" className="w-full h-full object-cover" />
           </div>
           <span className="font-extrabold tracking-tight text-sm text-transparent bg-clip-text bg-gradient-to-r from-white via-emerald-100 to-green-300">
             VirtualVerse
