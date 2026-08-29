@@ -145,7 +145,7 @@ export function MenuBar({
           className={`flex items-center gap-2 bg-white/5 hover:bg-white/10 border ${cBadge.border} px-3 py-1 rounded-full text-xs font-mono text-zinc-300 transition-colors cursor-pointer`}
           title="Click to view Profile & Wallet"
         >
-          <span className="font-semibold text-white truncate max-w-[120px]">{username}</span>
+          <span className="font-semibold text-white truncate max-w-[220px]">{username}</span>
           <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
           <div className="flex items-center gap-1.5">
             <span className={`w-2 h-2 rounded-full ${cBadge.color}`} />

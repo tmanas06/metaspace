@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { usePrivy } from "@privy-io/react-auth";
-import { CosmeticItem } from "@/lib/api";
+import { CosmeticItem, updateDisplayName } from "@/lib/api";
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -93,11 +93,20 @@ export function UserProfileModal({
   };
 
   const handleSaveProfile = async () => {
+    const trimmed = displayName.trim();
+    if (!trimmed) return;
     setIsSaving(true);
     setSavedSuccess(false);
     try {
+      if (privyToken && !isGuest) {
+        try {
+          await updateDisplayName(privyToken, trimmed);
+        } catch (err) {
+          console.warn("[UserProfileModal] Backend update error:", err);
+        }
+      }
       if (onSaveDisplayName) {
-        onSaveDisplayName(displayName);
+        onSaveDisplayName(trimmed);
       }
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 2500);
@@ -193,8 +202,9 @@ export function UserProfileModal({
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
+                  maxLength={32}
                   className="flex-1 bg-[#0d2215] border border-emerald-500/30 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-400 transition-colors"
-                  placeholder="Enter custom display name"
+                  placeholder="Enter custom display name (up to 32 characters)"
                 />
                 <button
                   onClick={handleSaveProfile}

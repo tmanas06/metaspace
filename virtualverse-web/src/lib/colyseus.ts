@@ -107,10 +107,25 @@ class ColyseusManager {
     }
   }
 
+  updateProfile(displayName: string, avatarConfig?: any) {
+    if (this.room && this.state.status === "connected") {
+      this.room.send("update-profile", { displayName, avatarConfig });
+    }
+  }
+
   private lastConnectOptions: any = null;
 
   async connect(username: string, mapId: string = "event_hall", options?: { displayName?: string; avatarConfig?: any; isGuest?: boolean; walletAddress?: string }) {
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3001";
+
+    // If already connected to the active room and map ID, update profile payload without tearing down WebSocket
+    if (this.room && this.state.status === "connected" && this.lastConnectMapId === mapId) {
+      console.log("[Colyseus] Already connected to room", mapId, "- updating active profile payload");
+      this.lastConnectUsername = username;
+      this.lastConnectOptions = options;
+      this.updateProfile(options?.displayName || username, options?.avatarConfig);
+      return;
+    }
 
     // Cleanly leave existing room session before connecting to prevent duplicate sessions
     if (this.room) {
@@ -235,9 +250,8 @@ class ColyseusManager {
         console.warn(`[Colyseus] Left room with code ${code}`);
         this.setState({ status: "disconnected", sessionId: null });
         this.cleanup();
-        // Auto-reconnect unless the user explicitly left (code 4000 = client called leave())
-        // or an intentional disconnect was triggered.
-        if (!this.intentionalDisconnect && code !== 4000 && this.lastConnectUsername) {
+        // Auto-reconnect unless the user explicitly left or evicted (code 4000/4001/4002)
+        if (!this.intentionalDisconnect && code !== 4000 && code !== 4001 && code !== 4002 && this.lastConnectUsername) {
           this.scheduleReconnect();
         }
       });
@@ -340,7 +354,7 @@ class ColyseusManager {
     this.setState({ status: "connecting", error: `Reconnecting... (attempt ${this.reconnectAttempts})` });
     this.reconnectTimer = setTimeout(async () => {
       if (!this.intentionalDisconnect && this.lastConnectUsername) {
-        await this.connect(this.lastConnectUsername, this.lastConnectMapId);
+        await this.connect(this.lastConnectUsername, this.lastConnectMapId, this.lastConnectOptions);
       }
     }, delay);
   }

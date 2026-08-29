@@ -217,6 +217,16 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
     }, 260);
   };
 
+  const handleSaveDisplayName = (newName: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    setUsername(trimmed);
+    gameBridge.setLocalUsername(trimmed);
+    import("@/lib/colyseus").then(({ colyseusManager }) => {
+      colyseusManager.updateProfile(trimmed, avatarConfig);
+    });
+  };
+
   const handleToggleSidebar = () => {
     handleSidebarCollapse(!isSidebarCollapsed);
   };
@@ -362,7 +372,7 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
         avatarConfig={avatarConfig}
         ownedCosmetics={ownedCosmetics}
         privyToken={privyToken}
-        onSaveDisplayName={(newName) => setUsername(newName)}
+        onSaveDisplayName={handleSaveDisplayName}
       />
     </div>
   );
