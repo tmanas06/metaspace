@@ -112,6 +112,17 @@ class ColyseusManager {
   async connect(username: string, mapId: string = "event_hall", options?: { displayName?: string; avatarConfig?: any; isGuest?: boolean; walletAddress?: string }) {
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3001";
 
+    // Cleanly leave existing room session before connecting to prevent duplicate sessions
+    if (this.room) {
+      try {
+        this.intentionalDisconnect = true;
+        await this.room.leave();
+      } catch (err) {
+        console.warn("[Colyseus] Error leaving previous room:", err);
+      }
+      this.cleanup();
+    }
+
     // Remember params for auto-reconnect
     this.lastConnectUsername = username;
     this.lastConnectMapId = mapId;
