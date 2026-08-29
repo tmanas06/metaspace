@@ -18,21 +18,21 @@ const VirtualWorld = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="min-h-screen bg-[#060612] flex items-center justify-center">
+      <div className="min-h-screen bg-[#080c09] flex items-center justify-center">
         <div className="text-center">
           <div
             style={{
               width: 48,
               height: 48,
               borderRadius: 14,
-              background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+              background: "linear-gradient(135deg, #16a34a, #4ade80)",
               margin: "0 auto 16px",
               animation: "pulse 1.4s ease-in-out infinite",
-              boxShadow: "0 0 30px rgba(99,102,241,0.5)",
+              boxShadow: "0 0 30px rgba(74,222,128,0.45)",
             }}
             aria-hidden="true"
           />
-          <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 13, fontFamily: "monospace" }}>
+          <p style={{ color: "rgba(74,222,128,0.45)", fontSize: 13, fontFamily: "monospace" }}>
             Loading VirtualVerse…
           </p>
         </div>
@@ -45,7 +45,7 @@ export default function RootPage() {
   const [showWorld, setShowWorld] = useState(false);
 
   if (showWorld) {
-    return <VirtualWorld />;
+    return <VirtualWorld onBack={() => setShowWorld(false)} />;
   }
 
   return <LandingPage onEnter={() => setShowWorld(true)} />;

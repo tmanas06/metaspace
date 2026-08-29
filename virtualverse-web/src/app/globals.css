@@ -1,8 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap');
 @import "tailwindcss";
 
 :root {
-  --background: #060612;
-  --foreground: #ffffff;
+  --background: #080c09;
+  --foreground: #e8f5e9;
 }
 
 @theme inline {
@@ -14,8 +15,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #060612;
-    --foreground: #ffffff;
+    --background: #080c09;
+    --foreground: #e8f5e9;
   }
 }
 
@@ -25,19 +26,14 @@ html {
 
 body {
   min-height: 100dvh;
-  /* overflow is intentionally NOT hidden here so the landing page can scroll.
-     The VirtualWorld component uses position:fixed;inset:0 and manages its own
-     overflow containment once the user enters the world. */
   overflow-x: hidden;
   overflow-y: auto;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-  /* Prevent content from being hidden under the iOS status bar */
+  font-family: 'Space Grotesk', Arial, Helvetica, sans-serif;
   padding-top: env(safe-area-inset-top);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
-  /* Remove tap highlight on mobile */
   -webkit-tap-highlight-color: transparent;
   touch-action: pan-x pan-y;
 }
