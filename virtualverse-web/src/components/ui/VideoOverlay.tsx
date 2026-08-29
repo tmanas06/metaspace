@@ -53,12 +53,40 @@ export function VideoOverlay({
     });
   };
 
-  const handleToggleFacingMode = () => {
+  const handleToggleFacingMode = async () => {
     const nextMode = facingMode === "user" ? "environment" : "user";
     setFacingMode(nextMode);
-    import("@/lib/livekit").then(({ liveKitManager }) => {
-      liveKitManager.setCameraFacingMode(nextMode);
-    });
+
+    // Stop existing standalone fallback preview stream tracks
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = null;
+    }
+
+    const { liveKitManager } = await import("@/lib/livekit");
+    await liveKitManager.setCameraFacingMode(nextMode);
+
+    // Re-attach or request preview stream for the new facingMode
+    const localTrack = liveKitManager.getLocalVideoTrack();
+    if (localTrack && localVideoRef.current) {
+      localTrack.attach(localVideoRef.current);
+    } else if (navigator.mediaDevices?.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: nextMode } },
+          audio: false,
+        });
+        streamRef.current = stream;
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+        }
+      } catch (err) {
+        console.warn("[Media] Failed switching camera lens:", err);
+      }
+    }
   };
 
   // Local camera self-preview stream
@@ -74,7 +102,7 @@ export function VideoOverlay({
           localTrack.attach(localVideoRef.current);
         } else {
           navigator.mediaDevices
-            ?.getUserMedia({ video: { facingMode }, audio: false })
+            ?.getUserMedia({ video: { facingMode: { ideal: facingMode } }, audio: false })
             .then((stream) => {
               streamRef.current = stream;
               if (localVideoRef.current) {

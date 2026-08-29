@@ -148,7 +148,8 @@ class LiveKitManager {
     this.setState({ facingMode });
     if (this.room && this.state.status === "connected" && this.state.camEnabled) {
       try {
-        // Re-enable camera with new facingMode option
+        // Disable camera first so LiveKit releases the current camera lock and acquires the requested facingMode sensor
+        await this.room.localParticipant.setCameraEnabled(false);
         await this.room.localParticipant.setCameraEnabled(true, {
           facingMode,
         });
