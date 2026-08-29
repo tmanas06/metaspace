@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import "forge-std/Script.sol";
 import "../src/AssetRegistry.sol";
 import "../src/CredentialSBT.sol";
+import "../src/AttendanceRegistry.sol";
 
 contract DeployContracts is Script {
     function run() external {
@@ -32,8 +33,26 @@ contract DeployContracts is Script {
             deployer
         );
 
+        // Deploy AttendanceRegistry
+        // defaultAdmin: deployer
+        // minter: deployer (backend will be granted later)
+        // pauser: deployer
+        // attendanceThreshold: 10 check-ins before Proof of Attendance
+        AttendanceRegistry attendanceRegistry = new AttendanceRegistry(
+            deployer,
+            deployer,
+            deployer,
+            10
+        );
+
+        // Link AttendanceRegistry to CredentialSBT for Proof of Attendance
+        // This allows AttendanceRegistry to emit ThresholdReached events
+        // Backend will listen and mint the actual SBT
+        // attendanceRegistry.setProofOfAttendanceSBT(address(credentialSBT));
+
         console.log("AssetRegistry deployed to:", address(assetRegistry));
         console.log("CredentialSBT deployed to:", address(credentialSBT));
+        console.log("AttendanceRegistry deployed to:", address(attendanceRegistry));
 
         vm.stopBroadcast();
     }

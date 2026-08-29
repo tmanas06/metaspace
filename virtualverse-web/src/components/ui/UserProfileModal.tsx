@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { CosmeticItem, updateDisplayName } from "@/lib/api";
+import { useAttendance } from "@/hooks/useAttendance";
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -16,8 +17,9 @@ interface UserProfileModalProps {
 }
 
 const MONAD_TESTNET_RPC = "https://testnet-rpc.monad.xyz";
-const ASSET_REGISTRY_ADDRESS = "0x3d44601a676d63E68F4F9D376dA75D9F027CDe06";
-const CREDENTIAL_SBT_ADDRESS = "0x0B6b73CB70949d2d3143B866aB0cD33fD6aa8474";
+const ASSET_REGISTRY_ADDRESS = "0x87a8d36762714F21dB72F7d76f49Ce724ebBa95a";
+const CREDENTIAL_SBT_ADDRESS = "0xC87276b3e407f20e52743E1B6a4cF70E759BCe30";
+const ATTENDANCE_REGISTRY_ADDRESS = "0xe9927909b0067D2d82F36145f1F348236FFf1355";
 
 const DEFAULT_COSMETICS = [
   { id: "hat_cyber_helm", name: "Cyber Visor Helmet", type: "hat", tokenId: 1, balance: 1, rarity: "Legendary", icon: "🥽" },
@@ -37,7 +39,21 @@ export function UserProfileModal({
   onSaveDisplayName,
 }: UserProfileModalProps) {
   const { user: privyUser, logout } = usePrivy();
-  const [activeTab, setActiveTab] = useState<"profile" | "wallet" | "assets">("profile");
+  const { 
+    checkInCount, 
+    checkIns, 
+    latestCheckIn, 
+    hasReachedThreshold, 
+    attendanceThreshold 
+  } = useAttendance();
+  
+  // Type-safe access to attendance data
+  const checkInCountNum = (checkInCount.data as number) ?? 0;
+  const attendanceThresholdNum = (attendanceThreshold.data as number) ?? 10;
+  const hasReachedThresholdBool = (hasReachedThreshold.data as boolean) ?? false;
+  const latestCheckInData = latestCheckIn.data as { timestamp: number; roomId: string; sessionId: number } | null;
+  const checkInsData = checkIns.data as Array<{ timestamp: number; roomId: string; sessionId: number }> | null;
+  const [activeTab, setActiveTab] = useState<"profile" | "wallet" | "assets" | "attendance">("profile");
 
   const [displayName, setDisplayName] = useState(username || "Web3 Explorer");
   const [isSaving, setIsSaving] = useState(false);
@@ -188,6 +204,16 @@ export function UserProfileModal({
           >
             💎 NFTs & ERC-1155 Assets ({displayCosmetics.length})
           </button>
+          <button
+            onClick={() => setActiveTab("attendance")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === "attendance"
+                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 shadow-md shadow-emerald-500/20"
+                : "text-emerald-400/60 hover:text-white hover:bg-emerald-950/40"
+            }`}
+          >
+            📅 Attendance ({checkInCountNum})
+          </button>
         </div>
 
         {/* Tab Content */}
@@ -335,6 +361,138 @@ export function UserProfileModal({
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {activeTab === "attendance" && (
+          <div className="space-y-5">
+            {/* Attendance Summary */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-5 rounded-2xl bg-[#0d2215] border border-emerald-500/30 text-center">
+                <div className="text-4xl font-black text-emerald-400 mb-1">
+                  {checkInCountNum}
+                </div>
+                <div className="text-xs text-emerald-400/70 uppercase tracking-wider">
+                  Total Check-ins
+                </div>
+              </div>
+              <div className="p-5 rounded-2xl bg-[#0d2215] border border-emerald-500/30 text-center">
+                <div className="text-4xl font-black text-emerald-400 mb-1">
+                  {attendanceThresholdNum}
+                </div>
+                <div className="text-xs text-emerald-400/70 uppercase tracking-wider">
+                  Threshold for Proof of Attendance
+                </div>
+              </div>
+            </div>
+
+            {/* Progress to Proof of Attendance */}
+            <div className="p-5 rounded-2xl bg-[#0d2215] border border-emerald-500/30">
+              <div className="flex items-center justify-between text-xs text-emerald-400/80 mb-2">
+                <span>Progress to Proof of Attendance SBT</span>
+                <span className="font-bold text-emerald-300">
+                  {checkInCountNum} / {attendanceThresholdNum}
+                </span>
+              </div>
+              <div className="h-3 bg-[#07130b] rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-300"
+                  style={{
+                    width: `${Math.min(100, (checkInCountNum / attendanceThresholdNum) * 100)}%`,
+                  }}
+                />
+              </div>
+              {hasReachedThresholdBool && (
+                <div className="mt-3 p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-center text-sm">
+                  ✅ Threshold reached! Proof of Attendance SBT available.
+                </div>
+              )}
+            </div>
+
+            {/* Latest Check-in */}
+            {latestCheckInData && latestCheckInData.timestamp > 0 && (
+              <div className="p-5 rounded-2xl bg-[#0d2215] border border-emerald-500/30">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                    Latest Check-in
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-500/60">
+                    Session #{latestCheckInData.sessionId}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <div className="text-lg font-bold text-white">
+                      {new Date(Number(latestCheckInData.timestamp) * 1000).toLocaleDateString()}
+                    </div>
+                    <div className="text-[10px] text-emerald-400/70 uppercase">Date</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-white">
+                      {new Date(Number(latestCheckInData.timestamp) * 1000).toLocaleTimeString()}
+                    </div>
+                    <div className="text-[10px] text-emerald-400/70 uppercase">Time</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-white truncate">
+                      {latestCheckInData.roomId}
+                    </div>
+                    <div className="text-[10px] text-emerald-400/70 uppercase">World</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Check-in History */}
+            {checkInsData && checkInsData.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                    Check-in History ({checkInsData.length})
+                  </span>
+                </div>
+                <div className="max-h-[300px] overflow-y-auto pr-1 space-y-2">
+                  {checkInsData.slice().reverse().map((checkIn, index: number) => (
+                    <div
+                      key={index}
+                      className="p-4 rounded-2xl bg-[#0d2215] border border-emerald-500/20 flex items-center justify-between gap-3 hover:border-emerald-400/40 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-xl shrink-0">
+                          📍
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-white truncate max-w-[150px]">
+                            {checkIn.roomId}
+                          </div>
+                          <div className="text-[10px] font-mono text-emerald-400/60">
+                            Session #{checkIn.sessionId}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right min-w-[120px]">
+                        <div className="text-xs font-mono text-white">
+                          {new Date(Number(checkIn.timestamp) * 1000).toLocaleDateString()}
+                        </div>
+                        <div className="text-[10px] text-emerald-400/70">
+                          {new Date(Number(checkIn.timestamp) * 1000).toLocaleTimeString()}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {(!checkInsData || checkInsData.length === 0) && (
+              <div className="p-8 rounded-2xl bg-[#0d2215] border border-emerald-500/20 text-center text-emerald-400/50">
+                <div className="text-4xl mb-2">📅</div>
+                <p className="text-sm">No check-ins yet</p>
+                <p className="text-xs text-emerald-400/50 mt-1">
+                  Join a world to start building your attendance record!
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
