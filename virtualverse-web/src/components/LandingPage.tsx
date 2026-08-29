@@ -920,11 +920,7 @@ export function LandingPage({ onEnter }: LandingPageProps) {
           <div className="vv-nav-left">
             <button className="vv-logo-wrap" onClick={() => document.getElementById("hero-section")?.scrollIntoView({ behavior: "smooth" })} aria-label="VirtualVerse home">
               <div className="vv-logo-icon" aria-hidden>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#030a04" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                  <path d="M2 12h20"/>
-                </svg>
+                <img src="/virtualverse-icon.jpg" alt="VirtualVerse logo" width={36} height={36} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 9 }} />
               </div>
               <span className="vv-logo-name">VirtualVerse</span>
             </button>

@@ -760,12 +760,8 @@ function JoinScreen({
         <aside className="js-left" aria-label="VirtualVerse introduction">
           <div className="js-logo-row" style={fi(0)}>
             <div className="js-logo-icon" aria-hidden>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#030a04" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                <path d="M2 12h20" />
-              </svg>
-            </div>
+                <img src="/virtualverse-icon.jpg" alt="VirtualVerse logo" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 10 }} />
+              </div>
             <span className="js-logo-text">VirtualVerse</span>
             <span className="js-logo-badge">Beta</span>
           </div>

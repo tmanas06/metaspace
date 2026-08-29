@@ -17,10 +17,22 @@ export const metadata: Metadata = {
   description:
     "A real-time multiplayer virtual world powered by Colyseus, Phaser 3, and LiveKit. Walk around, meet others, and video-call when you get close.",
   keywords: ["virtualverse", "multiplayer", "metaverse", "livekit", "colyseus"],
+  icons: {
+    icon: "/virtualverse-icon.jpg",
+    apple: "/virtualverse-icon.jpg",
+    shortcut: "/virtualverse-icon.jpg",
+  },
   openGraph: {
     title: "VirtualVerse",
     description: "Real-time multiplayer world with proximity video chat",
     type: "website",
+    images: [{ url: "/virtualverse-icon.jpg", width: 1024, height: 1024, alt: "VirtualVerse logo" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "VirtualVerse",
+    description: "Real-time multiplayer world with proximity video chat",
+    images: ["/virtualverse-icon.jpg"],
   },
 };
 
