@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { PrivyWrapper } from "@/components/PrivyWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -58,8 +59,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="h-full bg-[#080c09] text-[#e8f5e9]">
-        {children}
+      <body className="h-full bg-[#0d0d1a] text-white">
+        <PrivyWrapper>{children}</PrivyWrapper>
       </body>
     </html>
   );

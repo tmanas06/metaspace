@@ -2625,3 +2625,90 @@ export async function fetchRoomPresets(): Promise<MapPresetData[]> {
     return FALLBACK_MAP_PRESETS;
   }
 }
+
+export interface CosmeticItem {
+  tokenId: number;
+  name: string;
+  slot: "skin" | "hat" | "accessory" | "clothing";
+  color?: string;
+  icon?: string;
+  balance?: number;
+}
+
+export interface JoinResponse {
+  displayName: string;
+  avatarConfig: any;
+  isGuest: boolean;
+  ownedCosmetics?: CosmeticItem[];
+}
+
+export async function joinRoomAsGuest(roomId: string): Promise<JoinResponse> {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+  try {
+    const res = await fetch(`${apiUrl}/rooms/${roomId}/join-guest`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (e) {
+    console.warn("[API] Guest join request failed, using client fallback", e);
+  }
+  const hex = Math.floor(Math.random() * 65536).toString(16).padStart(4, "0");
+  return {
+    displayName: `guest-${hex}`,
+    avatarConfig: { skin: 1, color: "#FFFFFF", hat: null, accessory: null, clothing: null },
+    isGuest: true,
+  };
+}
+
+export async function joinRoomAuthenticated(roomId: string, privyToken: string): Promise<JoinResponse> {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+  const res = await fetch(`${apiUrl}/rooms/${roomId}/join`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${privyToken}`,
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to join room (${res.status})`);
+  }
+  return await res.json();
+}
+
+export async function updateAvatarConfig(privyToken: string, avatarConfig: any) {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+  const res = await fetch(`${apiUrl}/users/me/avatar`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${privyToken}`,
+    },
+    body: JSON.stringify({ avatarConfig }),
+  });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.message || `Failed to update avatar (${res.status})`);
+  }
+  return await res.json();
+}
+
+export async function updateDisplayName(privyToken: string, displayName: string) {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+  const res = await fetch(`${apiUrl}/users/me/display-name`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${privyToken}`,
+    },
+    body: JSON.stringify({ displayName }),
+  });
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    throw new Error(errData.message || `Failed to update display name (${res.status})`);
+  }
+  return await res.json();
+}
+

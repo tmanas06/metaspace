@@ -16,9 +16,12 @@ export function useColyseus() {
     return unsub;
   }, []);
 
-  const connect = useCallback((username: string, mapId?: string) => {
-    colyseusManager.connect(username, mapId);
-  }, []);
+  const connect = useCallback(
+    (username: string, mapId?: string, options?: { displayName?: string; avatarConfig?: any; isGuest?: boolean; walletAddress?: string }) => {
+      colyseusManager.connect(username, mapId, options);
+    },
+    []
+  );
 
   const disconnect = useCallback(() => {
     colyseusManager.disconnect();

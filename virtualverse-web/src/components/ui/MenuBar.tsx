@@ -11,6 +11,7 @@ interface MenuBarProps {
   onOpenMapSelector: () => void;
   onOpenControls: () => void;
   onOpenPermissions: () => void;
+  onOpenAvatarCustomizer?: () => void;
   onLeave: () => void;
 }
 
@@ -22,6 +23,7 @@ export function MenuBar({
   onOpenMapSelector,
   onOpenControls,
   onOpenPermissions,
+  onOpenAvatarCustomizer,
   onLeave,
 }: MenuBarProps) {
   const getStatusBadge = (status: ConnectionStatus) => {
@@ -82,6 +84,16 @@ export function MenuBar({
           </svg>
           <span>Map Gallery</span>
         </button>
+
+        {onOpenAvatarCustomizer && (
+          <button
+            onClick={onOpenAvatarCustomizer}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-300 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            <span>🎨</span>
+            <span>Avatar</span>
+          </button>
+        )}
 
         <button
           onClick={onOpenControls}

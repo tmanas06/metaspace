@@ -107,17 +107,15 @@ class ColyseusManager {
     }
   }
 
-  async connect(username: string, mapId: string = "event_hall") {
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
-    if (!wsUrl) {
-      console.error("[Colyseus] NEXT_PUBLIC_WS_URL is not set");
-      this.setState({ status: "error", error: "NEXT_PUBLIC_WS_URL not configured" });
-      return;
-    }
+  private lastConnectOptions: any = null;
+
+  async connect(username: string, mapId: string = "event_hall", options?: { displayName?: string; avatarConfig?: any; isGuest?: boolean; walletAddress?: string }) {
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3001";
 
     // Remember params for auto-reconnect
     this.lastConnectUsername = username;
     this.lastConnectMapId = mapId;
+    this.lastConnectOptions = options;
     this.intentionalDisconnect = false;
     this.cancelReconnect();
 
@@ -125,7 +123,14 @@ class ColyseusManager {
 
     try {
       this.client = new Colyseus.Client(wsUrl);
-      this.room = await this.client.joinOrCreate(mapId, { username });
+      const joinOptions = {
+        username: options?.displayName || username,
+        displayName: options?.displayName || username,
+        avatarConfig: options?.avatarConfig,
+        isGuest: options?.isGuest ?? true,
+        walletAddress: options?.walletAddress,
+      };
+      this.room = await this.client.joinOrCreate(mapId, joinOptions);
 
       this.setState({
         status: "connected",

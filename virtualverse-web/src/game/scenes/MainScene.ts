@@ -398,15 +398,17 @@ export class MainScene extends Phaser.Scene {
       .setDepth(1);
 
     // Name badge (pill tag)
+    const isGuest = name.toLowerCase().startsWith("guest-");
+    const displayLabel = isGuest ? `[Guest] ${name}` : name;
     const label = isLocal
-      ? `● You  (${name})`
-      : name;
+      ? `● You  (${displayLabel})`
+      : displayLabel;
     const badge = this.add.text(0, -(AV_H * AV_SCALE) - 4, label, {
       fontSize: "11px",
       fontFamily: "'Inter', system-ui, sans-serif",
       fontStyle: "bold",
-      color: isLocal ? "#ffffff" : "#e2e8f0",
-      backgroundColor: isLocal ? "#4f46e5" : "#1e293bcc",
+      color: isLocal ? "#ffffff" : isGuest ? "#cbd5e1" : "#e2e8f0",
+      backgroundColor: isLocal ? "#4f46e5" : isGuest ? "#334155cc" : "#1e293bcc",
       padding: { x: 7, y: 3 },
     })
       .setOrigin(0.5, 1)
