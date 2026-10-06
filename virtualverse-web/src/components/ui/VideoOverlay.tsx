@@ -13,6 +13,10 @@ interface VideoOverlayProps {
   onOpenPermissions: () => void;
   onToggleChat?: () => void;
   isChatOpen?: boolean;
+  onOpenScreenShare?: () => void;
+  onOpenScratchpad?: () => void;
+  onOpenSessionNotes?: () => void;
+  isScreenShareOpen?: boolean;
 }
 
 /**
@@ -30,6 +34,10 @@ export function VideoOverlay({
   onOpenPermissions,
   onToggleChat,
   isChatOpen,
+  onOpenScreenShare,
+  onOpenScratchpad,
+  onOpenSessionNotes,
+  isScreenShareOpen,
 }: VideoOverlayProps) {
   const [isMicOn, setIsMicOn] = useState(false);
   const [isCamOn, setIsCamOn] = useState(false);
@@ -443,7 +451,7 @@ export function VideoOverlay({
           </div>
         </div>
 
-        {/* Action icons: Map, Screen, Emoji */}
+        {/* Action icons: Map, Screen, Emoji, Scratchpad, Notes */}
         <div
           style={{
             display: "flex",
@@ -487,6 +495,53 @@ export function VideoOverlay({
               icon={
                 <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke={isChatOpen ? "#818cf8" : "currentColor"} strokeWidth={1.8}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              }
+            />
+          )}
+
+          {/* Divider */}
+          <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.06)", margin: "0 4px" }} />
+
+          {/* Screen Share */}
+          {onOpenScreenShare && (
+            <BarIconBtn
+              label="Screen Share & Record"
+              onClick={onOpenScreenShare}
+              active={isScreenShareOpen}
+              activeColor="rgba(16,185,129,0.18)"
+              activeBorderColor="rgba(16,185,129,0.5)"
+              activeIconColor="#34d399"
+              icon={
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v4m0 0l-2-2m2 2l2-2" />
+                </svg>
+              }
+            />
+          )}
+
+          {/* Scratchpad */}
+          {onOpenScratchpad && (
+            <BarIconBtn
+              label="Quick Scratchpad"
+              onClick={onOpenScratchpad}
+              icon={
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              }
+            />
+          )}
+
+          {/* Session Notes */}
+          {onOpenSessionNotes && (
+            <BarIconBtn
+              label="Session Notes"
+              onClick={onOpenSessionNotes}
+              icon={
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               }
             />
@@ -656,10 +711,18 @@ function BarIconBtn({
   label,
   icon,
   onClick,
+  active,
+  activeColor,
+  activeBorderColor,
+  activeIconColor,
 }: {
   label: string;
   icon: React.ReactNode;
   onClick: () => void;
+  active?: boolean;
+  activeColor?: string;
+  activeBorderColor?: string;
+  activeIconColor?: string;
 }) {
   const [hov, setHov] = useState(false);
   return (
@@ -669,10 +732,10 @@ function BarIconBtn({
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        background: hov ? "rgba(255,255,255,0.09)" : "transparent",
-        border: "none",
+        background: active ? (activeColor ?? "rgba(255,255,255,0.12)") : hov ? "rgba(255,255,255,0.09)" : "transparent",
+        border: active ? `1px solid ${activeBorderColor ?? "rgba(255,255,255,0.2)"}` : "none",
         borderRadius: 10,
-        color: hov ? "#fff" : "rgba(255,255,255,0.7)",
+        color: active ? (activeIconColor ?? "#fff") : hov ? "#fff" : "rgba(255,255,255,0.7)",
         padding: "6px 8px",
         minWidth: 40,
         minHeight: 40,
@@ -680,7 +743,7 @@ function BarIconBtn({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        transition: "background 0.12s, color 0.12s",
+        transition: "background 0.12s, color 0.12s, border 0.12s",
       }}
     >
       {icon}

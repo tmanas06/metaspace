@@ -14,6 +14,8 @@ import { ControlsModal } from "@/components/ui/ControlsModal";
 import { AvatarCustomizerModal } from "@/components/ui/AvatarCustomizerModal";
 import { UserProfileModal } from "@/components/ui/UserProfileModal";
 import { MenuBar } from "@/components/ui/MenuBar";
+import { ScratchpadPanel } from "@/components/ui/ScratchpadPanel";
+import { ScreenSharePanel } from "@/components/ui/ScreenSharePanel";
 import { useColyseus } from "@/hooks/useColyseus";
 import { useLiveKit } from "@/hooks/useLiveKit";
 import { usePlayers } from "@/hooks/usePlayers";
@@ -61,6 +63,9 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(true);
+  const [isScratchpadOpen, setIsScratchpadOpen] = useState(false);
+  const [scratchpadMode, setScratchpadMode] = useState<"scratchpad" | "notes">("notes");
+  const [isScreenShareOpen, setIsScreenShareOpen] = useState(false);
 
   const isMobile = useIsMobile();
   const [sidebarWidth, setSidebarWidth] = useState(220);
@@ -337,6 +342,10 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
             onOpenPermissions={() => setIsPermissionsOpen(true)}
             onToggleChat={() => setIsChatOpen((v) => !v)}
             isChatOpen={isChatOpen}
+            onOpenScreenShare={() => setIsScreenShareOpen(true)}
+            onOpenScratchpad={() => { setScratchpadMode("scratchpad"); setIsScratchpadOpen(true); }}
+            onOpenSessionNotes={() => { setScratchpadMode("notes"); setIsScratchpadOpen(true); }}
+            isScreenShareOpen={isScreenShareOpen}
           />
 
           {/* Mobile Touch Joystick (bottom-left, visible on phones/tablets) */}
@@ -384,6 +393,17 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
         ownedCosmetics={ownedCosmetics}
         privyToken={privyToken}
         onSaveDisplayName={handleSaveDisplayName}
+      />
+      <ScratchpadPanel
+        isOpen={isScratchpadOpen}
+        onClose={() => setIsScratchpadOpen(false)}
+        username={username}
+        mode={scratchpadMode}
+      />
+      <ScreenSharePanel
+        isOpen={isScreenShareOpen}
+        onClose={() => setIsScreenShareOpen(false)}
+        username={username}
       />
     </div>
   );
