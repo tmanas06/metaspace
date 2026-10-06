@@ -1,0 +1,14 @@
+{
+  "name": "metaspace",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "virtualverse-web"
+  ],
+  "scripts": {
+    "dev": "npm --prefix virtualverse-web run dev",
+    "build": "npm --prefix virtualverse-web run build",
+    "start": "npm --prefix virtualverse-web run start",
+    "typecheck": "npm --prefix virtualverse-web run typecheck"
+  }
+}

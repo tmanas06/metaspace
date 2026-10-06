@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "installCommand": "cd virtualverse-web && npm install",
+  "buildCommand": "cd virtualverse-web && npm run build",
+  "outputDirectory": "virtualverse-web/.next"
+}
