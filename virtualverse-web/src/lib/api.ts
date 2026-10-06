@@ -2613,7 +2613,12 @@ export async function fetchRoomPresets(): Promise<MapPresetData[]> {
     return FALLBACK_MAP_PRESETS;
   }
   try {
-    const res = await fetch(`${apiUrl}/rooms/presets`, { headers: { Accept: "application/json" } });
+    const res = await fetch(`${apiUrl}/rooms/presets`, {
+      headers: {
+        Accept: "application/json",
+        "ngrok-skip-browser-warning": "true",
+      },
+    });
     if (!res.ok) {
       console.warn(`[API] Preset fetch failed (${res.status}) — using built-in presets.`);
       return FALLBACK_MAP_PRESETS;
@@ -2650,7 +2655,10 @@ export async function joinRoomAsGuest(roomId: string): Promise<JoinResponse> {
   try {
     const res = await fetch(`${apiUrl}/rooms/${roomId}/join-guest`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "true",
+      },
     });
     if (res.ok) {
       return await res.json();
@@ -2673,6 +2681,7 @@ export async function joinRoomAuthenticated(roomId: string, privyToken: string):
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${privyToken}`,
+      "ngrok-skip-browser-warning": "true",
     },
   });
   if (!res.ok) {
@@ -2688,6 +2697,7 @@ export async function updateAvatarConfig(privyToken: string, avatarConfig: any) 
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${privyToken}`,
+      "ngrok-skip-browser-warning": "true",
     },
     body: JSON.stringify({ avatarConfig }),
   });
@@ -2705,6 +2715,7 @@ export async function updateDisplayName(privyToken: string, displayName: string)
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${privyToken}`,
+      "ngrok-skip-browser-warning": "true",
     },
     body: JSON.stringify({ displayName }),
   });
