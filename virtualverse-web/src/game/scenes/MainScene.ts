@@ -247,6 +247,7 @@ function generateAvatarTexture(
   key: string,
   colors: AvatarColors
 ): void {
+  if (!scene || !scene.textures || !(scene.textures as any)?.renderer) return;
   if (scene.textures.exists(key)) return;
 
   const cw = AV_W * WALK_FRAMES;
@@ -255,7 +256,8 @@ function generateAvatarTexture(
   const canvas = document.createElement("canvas");
   canvas.width  = cw;
   canvas.height = ch;
-  const ctx = canvas.getContext("2d")!;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
 
   AV_DIRS.forEach((dir, di) => {
     for (let f = 0; f < WALK_FRAMES; f++) {
@@ -265,11 +267,13 @@ function generateAvatarTexture(
 
   scene.textures.addCanvas(key, canvas);
   const tex = scene.textures.get(key);
-  AV_DIRS.forEach((dir, di) => {
-    for (let f = 0; f < WALK_FRAMES; f++) {
-      tex.add(`${dir}_${f}`, 0, f * AV_W, di * AV_H, AV_W, AV_H);
-    }
-  });
+  if (tex) {
+    AV_DIRS.forEach((dir, di) => {
+      for (let f = 0; f < WALK_FRAMES; f++) {
+        tex.add(`${dir}_${f}`, 0, f * AV_W, di * AV_H, AV_W, AV_H);
+      }
+    });
+  }
 }
 
 // ─── Interfaces ───────────────────────────────────────────────────────────────
@@ -1168,6 +1172,8 @@ export class MainScene extends Phaser.Scene {
   // ── State reconciliation ──────────────────────────────────────────────────────
 
   private reconcileState(players: PlayerState[]): void {
+    if (!this.playerContainer || !this.sys || !(this.textures as any)?.renderer) return;
+
     const seen = new Set<string>();
 
     players.forEach((p) => {
