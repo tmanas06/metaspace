@@ -16,6 +16,7 @@ import { UserProfileModal } from "@/components/ui/UserProfileModal";
 import { MenuBar } from "@/components/ui/MenuBar";
 import { ScratchpadPanel } from "@/components/ui/ScratchpadPanel";
 import { ScreenSharePanel } from "@/components/ui/ScreenSharePanel";
+import { DocSharePanel } from "@/components/ui/DocSharePanel";
 import { useColyseus } from "@/hooks/useColyseus";
 import { useLiveKit } from "@/hooks/useLiveKit";
 import { usePlayers } from "@/hooks/usePlayers";
@@ -66,6 +67,7 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
   const [isScratchpadOpen, setIsScratchpadOpen] = useState(false);
   const [scratchpadMode, setScratchpadMode] = useState<"scratchpad" | "notes">("notes");
   const [isScreenShareOpen, setIsScreenShareOpen] = useState(false);
+  const [isDocShareOpen, setIsDocShareOpen] = useState(false);
 
   const isMobile = useIsMobile();
   const [sidebarWidth, setSidebarWidth] = useState(220);
@@ -345,7 +347,9 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
             onOpenScreenShare={() => setIsScreenShareOpen(true)}
             onOpenScratchpad={() => { setScratchpadMode("scratchpad"); setIsScratchpadOpen(true); }}
             onOpenSessionNotes={() => { setScratchpadMode("notes"); setIsScratchpadOpen(true); }}
+            onOpenDocShare={() => setIsDocShareOpen(true)}
             isScreenShareOpen={isScreenShareOpen}
+            isDocShareOpen={isDocShareOpen}
           />
 
           {/* Mobile Touch Joystick (bottom-left, visible on phones/tablets) */}
@@ -403,6 +407,11 @@ export function VirtualWorld({ onBack }: { onBack?: () => void }) {
       <ScreenSharePanel
         isOpen={isScreenShareOpen}
         onClose={() => setIsScreenShareOpen(false)}
+        username={username}
+      />
+      <DocSharePanel
+        isOpen={isDocShareOpen}
+        onClose={() => setIsDocShareOpen(false)}
         username={username}
       />
     </div>

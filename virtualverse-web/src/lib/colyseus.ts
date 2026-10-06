@@ -27,7 +27,24 @@ export interface ColyseusState {
   error: string | null;
 }
 
+export interface DocShareMessage {
+  id: string;
+  fromUsername: string;
+  fromSessionId: string;
+  /** undefined = everyone in room */
+  toSessionId?: string;
+  toUsername?: string;
+  fileName: string;
+  fileType: string;
+  fileSizeBytes: number;
+  /** base64 encoded file content */
+  dataBase64: string;
+  timestamp: Date;
+  message?: string;
+}
+
 type StatusCallback = (state: ColyseusState) => void;
+
 
 // ─── Colyseus Manager ────────────────────────────────────────────────────────
 
@@ -37,6 +54,7 @@ class ColyseusManager {
   private statusCallbacks: StatusCallback[] = [];
   private playersCallbacks: ((players: PlayerEntry[]) => void)[] = [];
   private chatCallbacks: ((msg: { id: string; username: string; text: string; timestamp: Date; local?: boolean }) => void)[] = [];
+  private docShareCallbacks: ((doc: DocShareMessage) => void)[] = [];
   private unsubscribeInput: (() => void) | null = null;
 
   private playersState: PlayerEntry[] = [];
@@ -104,6 +122,27 @@ class ColyseusManager {
     if (this.room && this.state.status === "connected") {
       const payload = { text, username: username || "User" };
       this.room.send("chat", payload);
+    }
+  }
+
+  onDocShare(fn: (doc: DocShareMessage) => void) {
+    this.docShareCallbacks.push(fn);
+    return () => {
+      this.docShareCallbacks = this.docShareCallbacks.filter((cb) => cb !== fn);
+    };
+  }
+
+  sendDocShare(doc: Omit<DocShareMessage, "id" | "timestamp">) {
+    const payload: DocShareMessage = {
+      ...doc,
+      id: crypto.randomUUID(),
+      timestamp: new Date(),
+    };
+    if (this.room && this.state.status === "connected") {
+      this.room.send("doc-share", payload);
+    } else {
+      // Offline: echo locally only (sender sees their own share)
+      this.docShareCallbacks.forEach((fn) => fn(payload));
     }
   }
 
@@ -227,6 +266,15 @@ class ColyseusManager {
       };
 
       this.room.onMessage("chat", handleChatMsg);
+
+      // ── Document sharing ──────────────────────────────────────────────────
+      this.room.onMessage("doc-share", (data: DocShareMessage) => {
+        // Only deliver if this session is the intended recipient (or it's broadcast)
+        const mySession = this.state.sessionId;
+        if (!data.toSessionId || data.toSessionId === mySession || data.fromSessionId === mySession) {
+          this.docShareCallbacks.forEach((fn) => fn(data));
+        }
+      });
 
       // Listen for player changes via Colyseus Schema event listeners on room.state
       this.room.onStateChange((serverState) => {

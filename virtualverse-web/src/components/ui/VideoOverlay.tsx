@@ -16,7 +16,9 @@ interface VideoOverlayProps {
   onOpenScreenShare?: () => void;
   onOpenScratchpad?: () => void;
   onOpenSessionNotes?: () => void;
+  onOpenDocShare?: () => void;
   isScreenShareOpen?: boolean;
+  isDocShareOpen?: boolean;
 }
 
 /**
@@ -37,7 +39,9 @@ export function VideoOverlay({
   onOpenScreenShare,
   onOpenScratchpad,
   onOpenSessionNotes,
+  onOpenDocShare,
   isScreenShareOpen,
+  isDocShareOpen,
 }: VideoOverlayProps) {
   const [isMicOn, setIsMicOn] = useState(false);
   const [isCamOn, setIsCamOn] = useState(false);
@@ -542,6 +546,24 @@ export function VideoOverlay({
               icon={
                 <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              }
+            />
+          )}
+
+          {/* Document Share */}
+          {onOpenDocShare && (
+            <BarIconBtn
+              label="Share Documents"
+              onClick={onOpenDocShare}
+              active={isDocShareOpen}
+              activeColor="rgba(59,130,246,0.18)"
+              activeBorderColor="rgba(59,130,246,0.5)"
+              activeIconColor="#60a5fa"
+              icon={
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 11v6m0-6l-2 2m2-2l2 2" />
                 </svg>
               }
             />
