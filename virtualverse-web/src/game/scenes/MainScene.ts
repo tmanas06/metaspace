@@ -247,7 +247,7 @@ function generateAvatarTexture(
   key: string,
   colors: AvatarColors
 ): void {
-  if (!scene || !scene.textures || !(scene.textures as any)?.renderer) return;
+  if (!scene || !scene.textures || typeof scene.textures.exists !== "function") return;
   if (scene.textures.exists(key)) return;
 
   const cw = AV_W * WALK_FRAMES;
@@ -1172,7 +1172,7 @@ export class MainScene extends Phaser.Scene {
   // ── State reconciliation ──────────────────────────────────────────────────────
 
   private reconcileState(players: PlayerState[]): void {
-    if (!this.playerContainer || !this.sys || !(this.textures as any)?.renderer) return;
+    if (!this.playerContainer || !this.sys || !this.textures) return;
 
     const seen = new Set<string>();
 
